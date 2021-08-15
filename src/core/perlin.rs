@@ -1,8 +1,5 @@
 use crate::{
-    math::{
-        s_curve::quintic::Quintic,
-        vectors::{Vector, Vector2, Vector3, Vector4},
-    },
+    math::s_curve::quintic::Quintic,
     permutationtable::NoiseHasher,
 };
 use core::f64;
@@ -19,34 +16,26 @@ where
     // 1/(sqrt(N)/2), N=2 -> sqrt(2)
     const SCALE_FACTOR: f64 = f64::consts::SQRT_2;
 
-    let point = Vector2::from(point);
-
-    #[inline(always)]
-    #[rustfmt::skip]
-    fn gradient_dot_v(perm: usize, point: Vector2<f64>) -> f64 {
-        let [x, y] = point.into_array();
-
-        match perm & 0b11 {
-            0 =>  x + y, // ( 1,  1)
-            1 => -x + y, // (-1,  1)
-            2 =>  x - y, // ( 1, -1)
-            3 => -x - y, // (-1, -1)
-            _ => unreachable!(),
-        }
-    }
-
-    let floored = point.floor();
-    let corner: Vector2<isize> = floored.numcast().unwrap();
-    let distance = point - floored;
+    let [x, y] = point;
+    let flooredx = x.floor();
+    let flooredy = y.floor();
+    let cornerx = flooredx as isize;
+    let cornery = flooredy as isize;
+    let distancex = x - flooredx;
+    let distancey = y - flooredy;
 
     macro_rules! call_gradient(
         ($x:expr, $y:expr) => {
             {
-                let offset = Vector2::new($x, $y);
-                gradient_dot_v(
-                    hasher.hash(&(corner + offset).into_array()),
-                    distance - offset.numcast().unwrap()
-                )
+                let x = distancex - $x as f64;
+                let y = distancey - $y as f64;
+                match hasher.hash(&[cornerx + $x, cornery + $y]) & 0b11 {
+                    0 =>  x + y, // ( 1,  1)
+                    1 => -x + y, // (-1,  1)
+                    2 =>  x - y, // ( 1, -1)
+                    3 => -x - y, // (-1, -1)
+                    _ => unreachable!(),
+                }
             }
         }
     );
@@ -56,26 +45,20 @@ where
     let g01 = call_gradient!(0, 1);
     let g11 = call_gradient!(1, 1);
 
-    let [u, v] = distance.map_quintic().into_array();
+    let curvex = distancex.map_quintic();
+    let curvey = distancey.map_quintic();
 
-    let unscaled_result = bilinear_interpolation(u, v, g00, g01, g10, g11);
-
+    let k0 = g00;
+    let k1 = g10 - g00;
+    let k2 = g01 - g00;
+    let k3 = g00 + g11 - g10 - g01;
+    let unscaled_result = k0 + k1 * curvex + k2 * curvey + k3 * curvex * curvey;
     let scaled_result = unscaled_result * SCALE_FACTOR;
 
     // At this point, we should be really damn close to the (-1, 1) range, but some float errors
     // could have accumulated, so let's just clamp the results to (-1, 1) to cut off any
     // outliers and return it.
     scaled_result.clamp(-1.0, 1.0)
-}
-
-#[inline(always)]
-fn bilinear_interpolation(u: f64, v: f64, g00: f64, g01: f64, g10: f64, g11: f64) -> f64 {
-    let k0 = g00;
-    let k1 = g10 - g00;
-    let k2 = g01 - g00;
-    let k3 = g00 + g11 - g10 - g01;
-
-    k0 + k1 * u + k2 * v + k3 * u * v
 }
 
 #[inline(always)]
@@ -93,42 +76,38 @@ where
     // 2/sqrt(3) = 1.1547005383792515290182975610039149112952035025402537520372046529
     const SCALE_FACTOR: f64 = 1.154_700_538_379_251_5;
 
-    let point = Vector3::from(point);
-
-    #[inline(always)]
-    #[rustfmt::skip]
-    fn gradient_dot_v(perm: usize, point: Vector3<f64>) -> f64 {
-        let [x, y, z] = point.into_array();
-
-        match perm & 0b1111 {
-            0  | 12 =>  x + y    , // ( 1,  1,  0)
-            1  | 13 => -x + y    , // (-1,  1,  0)
-            2       =>  x - y    , // ( 1, -1,  0)
-            3       => -x - y    , // (-1, -1,  0)
-            4       =>  x     + z, // ( 1,  0,  1)
-            5       => -x     + z, // (-1,  0,  1)
-            6       =>  x     - z, // ( 1,  0, -1)
-            7       => -x     - z, // (-1,  0, -1)
-            8       =>      y + z, // ( 0,  1,  1)
-            9  | 14 =>     -y + z, // ( 0, -1,  1)
-            10      =>      y - z, // ( 0,  1, -1)
-            11 | 15 =>     -y - z, // ( 0, -1, -1)
-            _ => unreachable!(),
-        }
-    }
-
-    let floored = point.floor();
-    let corner: Vector3<isize> = floored.numcast().unwrap();
-    let distance = point - floored;
+    let [x, y, z] = point;
+    let flooredx = x.floor();
+    let flooredy = y.floor();
+    let flooredz = z.floor();
+    let cornerx = flooredx as isize;
+    let cornery = flooredy as isize;
+    let cornerz = flooredz as isize;
+    let distancex = x - flooredx;
+    let distancey = y - flooredy;
+    let distancez = z - flooredz;
 
     macro_rules! call_gradient(
         ($x:expr, $y:expr, $z:expr) => {
             {
-                let offset = Vector3::new($x, $y, $z);
-                gradient_dot_v(
-                    hasher.hash(&(corner + offset).into_array()),
-                    distance - offset.numcast().unwrap()
-                )
+                let x = distancex - $x as f64;
+                let y = distancey - $y as f64;
+                let z = distancez - $z as f64;
+                match hasher.hash(&[cornerx + $x, cornery + $y, cornerz + $z]) & 0b1111 {
+                    0  | 12 =>  x + y    , // ( 1,  1,  0)
+                    1  | 13 => -x + y    , // (-1,  1,  0)
+                    2       =>  x - y    , // ( 1, -1,  0)
+                    3       => -x - y    , // (-1, -1,  0)
+                    4       =>  x     + z, // ( 1,  0,  1)
+                    5       => -x     + z, // (-1,  0,  1)
+                    6       =>  x     - z, // ( 1,  0, -1)
+                    7       => -x     - z, // (-1,  0, -1)
+                    8       =>      y + z, // ( 0,  1,  1)
+                    9  | 14 =>     -y + z, // ( 0, -1,  1)
+                    10      =>      y - z, // ( 0,  1, -1)
+                    11 | 15 =>     -y - z, // ( 0, -1, -1)
+                    _ => unreachable!(),
+                }
             }
         }
     );
@@ -142,7 +121,9 @@ where
     let g011 = call_gradient!(0, 1, 1);
     let g111 = call_gradient!(1, 1, 1);
 
-    let [a, b, c] = distance.map_quintic().into_array();
+    let curvex = distancex.map_quintic();
+    let curvey = distancey.map_quintic();
+    let curvez = distancez.map_quintic();
 
     let k0 = g000;
     let k1 = g100 - g000;
@@ -154,7 +135,14 @@ where
     let k7 = g100 + g010 + g001 + g111 - g000 - g110 - g101 - g011;
 
     let unscaled_result =
-        k0 + k1 * a + k2 * b + k3 * c + k4 * a * b + k5 * a * c + k6 * b * c + k7 * a * b * c;
+        k0 +
+        k1 * curvex +
+        k2 * curvey +
+        k3 * curvez +
+        k4 * curvex * curvey +
+        k5 * curvex * curvez +
+        k6 * curvey * curvez +
+        k7 * curvex * curvey * curvez;
 
     let scaled_result = unscaled_result * SCALE_FACTOR;
 
@@ -174,58 +162,58 @@ where
     // range of (-1, 1).
     const SCALE_FACTOR: f64 = 1.0; // 1/(sqrt(N)/2), N=4 -> 2/sqrt(4) -> 2/2 -> 1
 
-    let point = Vector4::from(point);
-
-    #[inline(always)]
-    #[rustfmt::skip]
-    fn gradient_dot_v(perm: usize, point: Vector4<f64>) -> f64 {
-        let [x, y, z, w] = point.into_array();
-
-        match perm & 0b11111 {
-            0  | 28 =>  x + y + z    , // ( 1,  1,  1,  0)
-            1       => -x + y + z    , // (-1,  1,  1,  0)
-            2       =>  x - y + z    , // ( 1, -1,  1,  0)
-            3       =>  x + y - z    , // ( 1,  1, -1,  0)
-            4       => -x + y - z    , // (-1,  1, -1,  0)
-            5       =>  x - y - z    , // ( 1, -1, -1,  0)
-            6       =>  x - y - z    , // (-1, -1, -1,  0)
-            7  | 29 =>  x + y     + w, // ( 1,  1,  0,  1)
-            8       => -x + y     + w, // (-1,  1,  0,  1)
-            9       =>  x - y     + w, // ( 1, -1,  0,  1)
-            10      =>  x + y     - w, // ( 1,  1,  0, -1)
-            11      =>  x + y     - w, // (-1,  1,  0, -1)
-            12      =>  x + y     - w, // ( 1, -1,  0, -1)
-            13      => -x - y     - w, // (-1, -1,  0, -1)
-            14 | 30 =>  x     + z + w, // ( 1,  0,  1,  1)
-            15      => -x     + z + w, // (-1,  0,  1,  1)
-            16      =>  x     - z + w, // ( 1,  0, -1,  1)
-            17      =>  x     + z - w, // ( 1,  0,  1, -1)
-            18      =>  x     + z - w, // (-1,  0,  1, -1)
-            19      =>  x     + z - w, // ( 1,  0, -1, -1)
-            20      => -x     - z - w, // (-1,  0, -1, -1)
-            21 | 31 =>      y + z + w, // ( 0,  1,  1,  1)
-            22      =>     -y + z + w, // ( 0, -1,  1,  1)
-            23      =>      y - z + w, // ( 0,  1, -1,  1)
-            24      =>      y - z - w, // ( 0,  1,  1, -1)
-            25      =>     -y - z - w, // ( 0, -1,  1, -1)
-            26      =>  x + y + z - w, // ( 0,  1, -1, -1)
-            27      => -x + y + z - w, // ( 0, -1, -1, -1)
-            _ => unreachable!(),
-        }
-    }
-
-    let floored = point.floor();
-    let corner: Vector4<isize> = floored.numcast().unwrap();
-    let distance = point - floored;
+    let [x, y, z, w] = point;
+    let flooredx = x.floor();
+    let flooredy = y.floor();
+    let flooredz = z.floor();
+    let flooredw = w.floor();
+    let cornerx = flooredx as isize;
+    let cornery = flooredy as isize;
+    let cornerz = flooredz as isize;
+    let cornerw = flooredw as isize;
+    let distancex = x - flooredx;
+    let distancey = y - flooredy;
+    let distancez = z - flooredz;
+    let distancew = w - flooredw;
 
     macro_rules! call_gradient(
         ($x:expr, $y:expr, $z:expr, $w:expr) => {
             {
-                let offset = Vector4::new($x, $y, $z, $w);
-                gradient_dot_v(
-                    hasher.hash(&(corner + offset).into_array()),
-                    distance - offset.numcast().unwrap()
-                )
+                let x = distancex - $x as f64;
+                let y = distancey - $y as f64;
+                let z = distancez - $z as f64;
+                let w = distancew - $w as f64;
+                match hasher.hash(&[cornerx + $x, cornery + $y, cornerz + $z, cornerw - $w]) & 0b11111 {
+                    0  | 28 =>  x + y + z    , // ( 1,  1,  1,  0)
+                    1       => -x + y + z    , // (-1,  1,  1,  0)
+                    2       =>  x - y + z    , // ( 1, -1,  1,  0)
+                    3       =>  x + y - z    , // ( 1,  1, -1,  0)
+                    4       => -x + y - z    , // (-1,  1, -1,  0)
+                    5       =>  x - y - z    , // ( 1, -1, -1,  0)
+                    6       =>  x - y - z    , // (-1, -1, -1,  0)
+                    7  | 29 =>  x + y     + w, // ( 1,  1,  0,  1)
+                    8       => -x + y     + w, // (-1,  1,  0,  1)
+                    9       =>  x - y     + w, // ( 1, -1,  0,  1)
+                    10      =>  x + y     - w, // ( 1,  1,  0, -1)
+                    11      =>  x + y     - w, // (-1,  1,  0, -1)
+                    12      =>  x + y     - w, // ( 1, -1,  0, -1)
+                    13      => -x - y     - w, // (-1, -1,  0, -1)
+                    14 | 30 =>  x     + z + w, // ( 1,  0,  1,  1)
+                    15      => -x     + z + w, // (-1,  0,  1,  1)
+                    16      =>  x     - z + w, // ( 1,  0, -1,  1)
+                    17      =>  x     + z - w, // ( 1,  0,  1, -1)
+                    18      =>  x     + z - w, // (-1,  0,  1, -1)
+                    19      =>  x     + z - w, // ( 1,  0, -1, -1)
+                    20      => -x     - z - w, // (-1,  0, -1, -1)
+                    21 | 31 =>      y + z + w, // ( 0,  1,  1,  1)
+                    22      =>     -y + z + w, // ( 0, -1,  1,  1)
+                    23      =>      y - z + w, // ( 0,  1, -1,  1)
+                    24      =>      y - z - w, // ( 0,  1,  1, -1)
+                    25      =>     -y - z - w, // ( 0, -1,  1, -1)
+                    26      =>  x + y + z - w, // ( 0,  1, -1, -1)
+                    27      => -x + y + z - w, // ( 0, -1, -1, -1)
+                    _ => unreachable!(),
+                }
             }
         }
     );
@@ -247,7 +235,10 @@ where
     let g0111 = call_gradient!(0, 1, 1, 1);
     let g1111 = call_gradient!(1, 1, 1, 1);
 
-    let [a, b, c, d] = distance.map_quintic().into_array();
+    let curvex = distancex.map_quintic();
+    let curvey = distancey.map_quintic();
+    let curvez = distancez.map_quintic();
+    let curvew = distancew.map_quintic();
 
     let k0 = g0000;
     let k1 = g1000 - g0000;
@@ -267,21 +258,21 @@ where
     let k15 = g1111 + g1000 + g0100 + g0010 + g0001 - g0000 - g0111 - g1011 - g1101 - g1110;
 
     let unscaled_result = k0
-        + k1 * a
-        + k2 * b
-        + k3 * c
-        + k4 * d
-        + k5 * a * b
-        + k6 * a * c
-        + k7 * a * d
-        + k8 * b * c
-        + k9 * b * d
-        + k10 * c * d
-        + k11 * a * b * c
-        + k12 * a * b * d
-        + k13 * a * c * d
-        + k14 * b * c * d
-        + k15 * a * b * c * d;
+        + k1 * curvex
+        + k2 * curvey
+        + k3 * curvez
+        + k4 * curvew
+        + k5 * curvex * curvey
+        + k6 * curvex * curvez
+        + k7 * curvex * curvew
+        + k8 * curvey * curvez
+        + k9 * curvey * curvew
+        + k10 * curvez * curvew
+        + k11 * curvex * curvey * curvez
+        + k12 * curvex * curvey * curvew
+        + k13 * curvex * curvez * curvew
+        + k14 * curvey * curvez * curvew
+        + k15 * curvex * curvey * curvez * curvew;
 
     let scaled_result = unscaled_result * SCALE_FACTOR;
 
