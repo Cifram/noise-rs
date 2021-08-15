@@ -16,7 +16,7 @@ criterion_main!(value, value_64x64);
 
 fn bench_value2(c: &mut Criterion) {
     let value = Value::new(42);
-    c.bench_function("super simplex 4d", |b| {
+    c.bench_function("value 2d", |b| {
         b.iter(|| value.get(black_box([42.0_f64, 37.0])))
     });
 }

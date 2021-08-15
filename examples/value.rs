@@ -2,10 +2,26 @@
 
 extern crate noise;
 
-use noise::{utils::*, Value};
+use noise::{utils::*, core::value::{value_2d, value_3d, value_4d}, permutationtable::PermutationTable};
 
 fn main() {
-    PlaneMapBuilder::new(Value::default())
+    let hasher = PermutationTable::new(0);
+    PlaneMapBuilder::new_fn(value_2d, &hasher)
+        .set_size(1024, 1024)
+        .set_x_bounds(-5.0, 5.0)
+        .set_y_bounds(-5.0, 5.0)
         .build()
-        .write_to_file("value.png");
+        .write_to_file("value 2d.png");
+    PlaneMapBuilder::new_fn(value_3d, &hasher)
+        .set_size(1024, 1024)
+        .set_x_bounds(-5.0, 5.0)
+        .set_y_bounds(-5.0, 5.0)
+        .build()
+        .write_to_file("value 3d.png");
+    PlaneMapBuilder::new_fn(value_4d, &hasher)
+        .set_size(1024, 1024)
+        .set_x_bounds(-5.0, 5.0)
+        .set_y_bounds(-5.0, 5.0)
+        .build()
+        .write_to_file("value 4d.png");
 }
