@@ -2,24 +2,30 @@
 
 extern crate noise;
 
-use noise::{utils::*, Seedable, Simplex};
+use noise::{
+    utils::*,
+    core::simplex::{simplex_2d, simplex_3d, simplex_4d},
+    permutationtable::PermutationTable
+};
 
 fn main() {
-    let mut simplex = Simplex::default();
-
-    PlaneMapBuilder::new(simplex)
+    let hasher = PermutationTable::new(0);
+    PlaneMapBuilder::new_fn(|point, hasher| simplex_2d(point, hasher).0, &hasher)
         .set_size(1024, 1024)
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)
         .build()
-        .write_to_file("simplex.png");
-
-    simplex = simplex.set_seed(1);
-
-    PlaneMapBuilder::new(simplex)
+        .write_to_file("simplex 2d.png");
+    PlaneMapBuilder::new_fn(|point, hasher| simplex_3d(point, hasher).0, &hasher)
         .set_size(1024, 1024)
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)
         .build()
-        .write_to_file("simplex_seed=1.png");
+        .write_to_file("simplex 3d.png");
+    PlaneMapBuilder::new_fn(|point, hasher| simplex_4d(point, hasher).0, &hasher)
+        .set_size(1024, 1024)
+        .set_x_bounds(-5.0, 5.0)
+        .set_y_bounds(-5.0, 5.0)
+        .build()
+        .write_to_file("simplex 4d.png");
 }
