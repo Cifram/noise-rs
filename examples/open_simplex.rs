@@ -15,17 +15,17 @@ fn main() {
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)
         .build()
-        .write_to_file("open_simplex 2d.png");
+        .write_to_file("open simplex 2d.png");
     PlaneMapBuilder::new_fn(open_simplex_3d, &hasher)
         .set_size(1024, 1024)
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)
         .build()
-        .write_to_file("open_simplex 3d.png");
+        .write_to_file("open simplex 3d.png");
     PlaneMapBuilder::new_fn(open_simplex_4d, &hasher)
         .set_size(1024, 1024)
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)
         .build()
-        .write_to_file("open_simplex 4d.png");
+        .write_to_file("open simplex 4d.png");
 }
