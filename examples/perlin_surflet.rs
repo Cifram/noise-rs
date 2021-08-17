@@ -1,25 +1,31 @@
-//! An example of using perlin noise
+//! An example of using perlin_surflet noise
 
 extern crate noise;
 
-use noise::{utils::*, PerlinSurflet, Seedable};
+use noise::{
+    utils::*,
+    core::perlin_surflet::{perlin_surflet_2d, perlin_surflet_3d, perlin_surflet_4d},
+    permutationtable::PermutationTable
+};
 
 fn main() {
-    let perlin = PerlinSurflet::default();
-
-    PlaneMapBuilder::new(perlin)
+    let hasher = PermutationTable::new(0);
+    PlaneMapBuilder::new_fn(perlin_surflet_2d, &hasher)
         .set_size(1024, 1024)
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)
         .build()
-        .write_to_file("perlin_surflet.png");
-
-    let perlin = perlin.set_seed(1);
-
-    PlaneMapBuilder::new(perlin)
+        .write_to_file("perlin surflet 2d.png");
+    PlaneMapBuilder::new_fn(perlin_surflet_3d, &hasher)
         .set_size(1024, 1024)
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)
         .build()
-        .write_to_file("perlin_surflet_seed=1.png");
+        .write_to_file("perlin surflet 3d.png");
+    PlaneMapBuilder::new_fn(perlin_surflet_4d, &hasher)
+        .set_size(1024, 1024)
+        .set_x_bounds(-5.0, 5.0)
+        .set_y_bounds(-5.0, 5.0)
+        .build()
+        .write_to_file("perlin surflet 4d.png");
 }
