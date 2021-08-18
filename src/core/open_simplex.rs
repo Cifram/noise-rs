@@ -4,7 +4,11 @@ use crate::{
     permutationtable::PermutationTable,
 };
 
-pub fn open_simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
+#[inline(always)]
+fn base_open_simplex_2d<F>(point: [f64; 2], hasher: F) -> f64
+where
+    F: Fn([isize; 2]) -> usize
+{
     const STRETCH_CONSTANT: f64 = -0.211_324_865_405_187; //(1/sqrt(2+1)-1)/2;
     const SQUISH_CONSTANT: f64 = 0.366_025_403_784_439; //(sqrt(2+1)-1)/2;
     const NORM_CONSTANT: f64 = 1.0 / 14.0;
@@ -47,7 +51,7 @@ pub fn open_simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
             {
                 let offset = Vector2::new($x, $y);
                 let vertex = stretched_floor + offset;
-                let index = hasher.hash_2d(vertex.numcast().unwrap().into_array());
+                let index = hasher(vertex.numcast().unwrap().into_array());
                 let dpos = rel_pos - (Vector2::broadcast(SQUISH_CONSTANT) * offset.sum()) - offset;
 
                 surflet(index, dpos)
@@ -82,7 +86,11 @@ pub fn open_simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
     value * NORM_CONSTANT
 }
 
-pub fn open_simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
+#[inline(always)]
+fn base_open_simplex_3d<F>(point: [f64; 3], hasher: F) -> f64
+where
+    F: Fn([isize; 3]) -> usize
+{
     const STRETCH_CONSTANT: f64 = -1.0 / 6.0; //(1/Math.sqrt(3+1)-1)/3;
     const SQUISH_CONSTANT: f64 = 1.0 / 3.0; //(Math.sqrt(3+1)-1)/3;
     const NORM_CONSTANT: f64 = 1.0 / 14.0;
@@ -127,7 +135,7 @@ pub fn open_simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
             {
                 let offset = Vector3::new($x, $y, $z);
                 let vertex = stretched_floor + offset;
-                let index = hasher.hash_3d(vertex.numcast().unwrap().into_array());
+                let index = hasher(vertex.numcast().unwrap().into_array());
                 let dpos = rel_pos - (Vector3::broadcast(SQUISH_CONSTANT) * offset.sum()) - offset;
 
                 surflet(index, dpos)
@@ -190,7 +198,11 @@ pub fn open_simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
     value * NORM_CONSTANT
 }
 
-pub fn open_simplex_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
+#[inline(always)]
+fn base_open_simplex_4d<F>(point: [f64; 4], hasher: F) -> f64
+where
+    F: Fn([isize; 4]) -> usize
+{
     const STRETCH_CONSTANT: f64 = -0.138_196_601_125_011; //(Math.sqrt(4+1)-1)/4;
     const SQUISH_CONSTANT: f64 = 0.309_016_994_374_947; //(Math.sqrt(4+1)-1)/4;
 
@@ -238,7 +250,7 @@ pub fn open_simplex_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
             {
                 let offset = Vector4::new($x, $y, $z, $w);
                 let vertex = stretched_floor + offset;
-                let index = hasher.hash_4d(vertex.numcast().unwrap().into_array());
+                let index = hasher(vertex.numcast().unwrap().into_array());
                 let dpos = rel_pos - (Vector4::broadcast(SQUISH_CONSTANT) * offset.sum()) - offset;
 
                 surflet(index, dpos)
@@ -349,4 +361,34 @@ pub fn open_simplex_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
     }
 
     value * NORM_CONSTANT
+}
+
+#[inline(always)]
+pub fn open_simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
+    base_open_simplex_2d(point, |to_hash| hasher.hash_2d(to_hash))
+}
+
+#[inline(always)]
+pub fn open_simplex_2d_variant(point: [f64; 2], variant: isize, hasher: &PermutationTable) -> f64 {
+    base_open_simplex_2d(point, |to_hash| hasher.hash_3d([to_hash[0], to_hash[1], variant]))
+}
+
+#[inline(always)]
+pub fn open_simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
+    base_open_simplex_3d(point, |to_hash| hasher.hash_3d(to_hash))
+}
+
+#[inline(always)]
+pub fn open_simplex_3d_variant(point: [f64; 3], variant: isize, hasher: &PermutationTable) -> f64 {
+    base_open_simplex_3d(point, |to_hash| hasher.hash_4d([to_hash[0], to_hash[1], to_hash[2], variant]))
+}
+
+#[inline(always)]
+pub fn open_simplex_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
+    base_open_simplex_4d(point, |to_hash| hasher.hash_4d(to_hash))
+}
+
+#[inline(always)]
+pub fn open_simplex_4d_variant(point: [f64; 4], variant: isize, hasher: &PermutationTable) -> f64 {
+    base_open_simplex_4d(point, |to_hash| hasher.hash_5d([to_hash[0], to_hash[1], to_hash[2], to_hash[3], variant]))
 }

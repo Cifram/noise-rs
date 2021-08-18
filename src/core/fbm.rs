@@ -1,5 +1,6 @@
 use crate::{
     core::perlin::{perlin_2d_variant, perlin_3d_variant, perlin_4d_variant},
+    core::open_simplex::{open_simplex_2d_variant, open_simplex_3d_variant, open_simplex_4d_variant},
     permutationtable::PermutationTable,
 };
 
@@ -63,23 +64,62 @@ where
     result
 }
 
-pub fn fbm_perlin_2d(point: [f64; 2], frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable) -> f64 {
+pub fn fbm_perlin_2d(
+    point: [f64; 2],
+    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
+) -> f64 {
     fbm_2d(
         point, frequency, lacunarity, persistence, octaves,
         |point, octave| perlin_2d_variant(point, octave as isize, hasher)
     )
 }
 
-pub fn fbm_perlin_3d(point: [f64; 3], frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable) -> f64 {
+pub fn fbm_perlin_3d(
+    point: [f64; 3],
+    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
+) -> f64 {
     fbm_3d(
         point, frequency, lacunarity, persistence, octaves,
         |point, octave| perlin_3d_variant(point, octave as isize, hasher)
     )
 }
 
-pub fn fbm_perlin_4d(point: [f64; 4], frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable) -> f64 {
+pub fn fbm_perlin_4d(
+    point: [f64; 4],
+    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
+) -> f64 {
     fbm_4d(
         point, frequency, lacunarity, persistence, octaves,
         |point, octave| perlin_4d_variant(point, octave as isize, hasher)
+    )
+}
+
+pub fn fbm_open_simplex_2d(
+    point: [f64; 2],
+    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
+) -> f64 {
+    fbm_2d(
+        point, frequency, lacunarity, persistence, octaves,
+        |point, octave| open_simplex_2d_variant(point, octave as isize, hasher)
+    )
+}
+
+pub fn fbm_open_simplex_3d(
+    point: [f64; 3],
+    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
+) -> f64 {
+    fbm_3d(
+        point, frequency, lacunarity, persistence, octaves,
+        |point, octave| open_simplex_3d_variant(point, octave as isize, hasher)
+    )
+}
+
+pub fn fbm_open_simplex_4d(
+    point: [f64; 4],
+    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
+) -> f64 {
+    fbm_4d(
+        point, frequency, lacunarity, persistence, octaves,
+        |point, octave| open_simplex_4d_variant(point, octave as isize, hasher)
     )
 }
