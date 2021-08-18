@@ -5,7 +5,10 @@ use crate::{
 use core::f64;
 
 #[inline(always)]
-pub fn perlin_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
+fn base_perlin_2d<F>(point: [f64; 2], hasher: F) -> f64
+where
+    F: Fn([isize; 2]) -> usize
+{
     // Unscaled range of linearly interpolated perlin noise should be (-sqrt(N)/2, sqrt(N)/2).
     // Need to invert this value and multiply the unscaled result by the value to get a scaled
     // range of (-1, 1).
@@ -26,7 +29,7 @@ pub fn perlin_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
             {
                 let x = distancex - $x as f64;
                 let y = distancey - $y as f64;
-                match hasher.hash_2d([cornerx + $x, cornery + $y]) & 0b11 {
+                match hasher([cornerx + $x, cornery + $y]) & 0b11 {
                     0 =>  x + y, // ( 1,  1)
                     1 => -x + y, // (-1,  1)
                     2 =>  x - y, // ( 1, -1)
@@ -59,7 +62,10 @@ pub fn perlin_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
 }
 
 #[inline(always)]
-pub fn perlin_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
+fn base_perlin_3d<F>(point: [f64; 3], hasher: F) -> f64
+where
+    F: Fn([isize; 3]) -> usize
+{
     // Unscaled range of linearly interpolated perlin noise should be (-sqrt(N)/2, sqrt(N)/2).
     // Need to invert this value and multiply the unscaled result by the value to get a scaled
     // range of (-1, 1).
@@ -87,7 +93,7 @@ pub fn perlin_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
                 let x = distancex - $x as f64;
                 let y = distancey - $y as f64;
                 let z = distancez - $z as f64;
-                match hasher.hash_3d([cornerx + $x, cornery + $y, cornerz + $z]) & 0b1111 {
+                match hasher([cornerx + $x, cornery + $y, cornerz + $z]) & 0b1111 {
                     0  | 12 =>  x + y    , // ( 1,  1,  0)
                     1  | 13 => -x + y    , // (-1,  1,  0)
                     2       =>  x - y    , // ( 1, -1,  0)
@@ -147,7 +153,10 @@ pub fn perlin_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
 }
 
 #[inline(always)]
-pub fn perlin_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
+fn base_perlin_4d<F>(point: [f64; 4], hasher: F) -> f64
+where
+    F: Fn([isize; 4]) -> usize
+{
     // Unscaled range of linearly interpolated perlin noise should be (-sqrt(N)/2, sqrt(N)/2).
     // Need to invert this value and multiply the unscaled result by the value to get a scaled
     // range of (-1, 1).
@@ -174,7 +183,7 @@ pub fn perlin_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
                 let y = distancey - $y as f64;
                 let z = distancez - $z as f64;
                 let w = distancew - $w as f64;
-                match hasher.hash_4d([cornerx + $x, cornery + $y, cornerz + $z, cornerw - $w]) & 0b11111 {
+                match hasher([cornerx + $x, cornery + $y, cornerz + $z, cornerw - $w]) & 0b11111 {
                     0  | 28 =>  x + y + z    , // ( 1,  1,  1,  0)
                     1       => -x + y + z    , // (-1,  1,  1,  0)
                     2       =>  x - y + z    , // ( 1, -1,  1,  0)
@@ -271,4 +280,34 @@ pub fn perlin_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
     // could have accumulated, so let's just clamp the results to (-1, 1) to cut off any
     // outliers and return it.
     scaled_result.clamp(-1.0, 1.0)
+}
+
+#[inline(always)]
+pub fn perlin_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
+    base_perlin_2d(point, |to_hash| hasher.hash_2d(to_hash))
+}
+
+#[inline(always)]
+pub fn perlin_2d_variant(point: [f64; 2], variant: isize, hasher: &PermutationTable) -> f64 {
+    base_perlin_2d(point, |to_hash| hasher.hash_3d([to_hash[0], to_hash[1], variant]))
+}
+
+#[inline(always)]
+pub fn perlin_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
+    base_perlin_3d(point, |to_hash| hasher.hash_3d(to_hash))
+}
+
+#[inline(always)]
+pub fn perlin_3d_variant(point: [f64; 3], variant: isize, hasher: &PermutationTable) -> f64 {
+    base_perlin_3d(point, |to_hash| hasher.hash_4d([to_hash[0], to_hash[1], to_hash[2], variant]))
+}
+
+#[inline(always)]
+pub fn perlin_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
+    base_perlin_4d(point, |to_hash| hasher.hash_4d(to_hash))
+}
+
+#[inline(always)]
+pub fn perlin_4d_variant(point: [f64; 4], variant: isize, hasher: &PermutationTable) -> f64 {
+    base_perlin_4d(point, |to_hash| hasher.hash_5d([to_hash[0], to_hash[1], to_hash[2], to_hash[3], variant]))
 }
