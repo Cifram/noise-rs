@@ -16,7 +16,7 @@ where
     macro_rules! get(
         ($corner:expr, $offset:expr) => {
             {
-               hasher.hash(&($corner + Vector2::from($offset)).into_array()) as f64 / 255.0
+               hasher.hash_2d(($corner + Vector2::from($offset)).into_array()) as f64 / 255.0
             }
         }
     );
@@ -46,7 +46,7 @@ where
     macro_rules! get(
         ($corner:expr, $offset:expr) => {
             {
-               hasher.hash(&($corner + Vector3::from($offset)).into_array()) as f64 / 255.0
+               hasher.hash_3d(($corner + Vector3::from($offset)).into_array()) as f64 / 255.0
             }
         }
     );
@@ -84,7 +84,7 @@ where
     macro_rules! get(
         ($corner:expr, $offset:expr) => {
             {
-               hasher.hash(&($corner + Vector4::from($offset)).into_array()) as f64 / 255.0
+               hasher.hash_4d(($corner + Vector4::from($offset)).into_array()) as f64 / 255.0
             }
         }
     );

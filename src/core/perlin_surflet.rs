@@ -32,7 +32,7 @@ where
         ($x:expr, $y:expr) => {
             {
                 let offset = Vector2::new($x, $y);
-                let index = hasher.hash(&(corner + offset).into_array());
+                let index = hasher.hash_2d((corner + offset).into_array());
                 surflet(index, distance - offset.numcast().unwrap())
             }
         }
@@ -75,7 +75,7 @@ where
         ($x:expr, $y:expr, $z:expr) => {
             {
                 let offset = Vector3::new($x, $y, $z);
-                let index = hasher.hash(&(corner + offset).into_array());
+                let index = hasher.hash_3d((corner + offset).into_array());
                 surflet(index, distance - offset.numcast().unwrap())
             }
         }
@@ -122,7 +122,7 @@ where
         ($x:expr, $y:expr, $z:expr, $w:expr) => {
             {
                 let offset = Vector4::new($x, $y, $z, $w);
-                let index = hasher.hash(&(corner + offset).into_array());
+                let index = hasher.hash_4d((corner + offset).into_array());
                 surflet(index, distance - offset.numcast().unwrap())
             }
         }

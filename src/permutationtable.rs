@@ -10,7 +10,11 @@ use rand_xorshift::XorShiftRng;
 const TABLE_SIZE: usize = 256;
 
 pub trait NoiseHasher: Send + Sync {
-    fn hash(&self, to_hash: &[isize]) -> usize;
+    fn hash_1d(&self, to_hash: isize) -> usize;
+    fn hash_2d(&self, to_hash: [isize; 2]) -> usize;
+    fn hash_3d(&self, to_hash: [isize; 3]) -> usize;
+    fn hash_4d(&self, to_hash: [isize; 4]) -> usize;
+    fn hash_5d(&self, to_hash: [isize; 5]) -> usize;
 }
 
 /// A seed table, required by all noise functions.
@@ -19,13 +23,13 @@ pub trait NoiseHasher: Send + Sync {
 /// create one of these per generator.
 #[derive(Copy, Clone)]
 pub struct PermutationTable {
-    values: [u8; TABLE_SIZE],
+    values: [usize; TABLE_SIZE],
 }
 
 impl Distribution<PermutationTable> for Standard {
     /// Generates a PermutationTable using a random seed.
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PermutationTable {
-        let mut seq: Vec<u8> = (0..TABLE_SIZE).map(|x| x as u8).collect();
+        let mut seq: Vec<usize> = (0..TABLE_SIZE).collect();
         seq.shuffle(rng);
 
         // It's unfortunate that this double-initializes the array, but Rust
@@ -62,13 +66,29 @@ impl PermutationTable {
 }
 
 impl NoiseHasher for PermutationTable {
-    fn hash(&self, to_hash: &[isize]) -> usize {
-        let index = to_hash
-            .iter()
-            .map(|&a| (a & 0xff) as usize)
-            .reduce(|a, b| self.values[a] as usize ^ b)
-            .unwrap();
-        self.values[index] as usize
+    #[inline(always)]
+    fn hash_1d(&self, to_hash: isize) -> usize {
+        self.values[(to_hash & 0xff) as usize]
+    }
+
+    #[inline(always)]
+    fn hash_2d(&self, to_hash: [isize; 2]) -> usize {
+        self.hash_1d(to_hash[1] ^ self.hash_1d(to_hash[0]) as isize)
+    }
+
+    #[inline(always)]
+    fn hash_3d(&self, to_hash: [isize; 3]) -> usize {
+        self.hash_1d(to_hash[2] ^ self.hash_2d([to_hash[0], to_hash[1]]) as isize)
+    }
+
+    #[inline(always)]
+    fn hash_4d(&self, to_hash: [isize; 4]) -> usize {
+        self.hash_1d(to_hash[3] ^ self.hash_3d([to_hash[0], to_hash[1], to_hash[2]]) as isize)
+    }
+
+    #[inline(always)]
+    fn hash_5d(&self, to_hash: [isize; 5]) -> usize {
+        self.hash_1d(to_hash[4] ^ self.hash_4d([to_hash[0], to_hash[1], to_hash[2], to_hash[3]]) as isize)
     }
 }
 

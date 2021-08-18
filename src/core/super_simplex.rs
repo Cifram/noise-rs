@@ -120,7 +120,7 @@ where
         if attn > 0.0 {
             let lattice_point =
                 simplex_base_point_i + Vector2::from(lattice_lookup.0).numcast().unwrap();
-            let gradient = Vector2::from(gradient::grad2(hasher.hash(&lattice_point.into_array())));
+            let gradient = Vector2::from(gradient::grad2(hasher.hash_2d(lattice_point.into_array())));
             value += attn.powi(4) * gradient.dot(dpos);
         }
     }
@@ -183,7 +183,7 @@ where
         if attn > 0.0 {
             let lattice_point =
                 simplex_base_point_i + Vector3::from(lattice_lookup).numcast().unwrap();
-            let gradient = Vector3::from(gradient::grad3(hasher.hash(&lattice_point.into_array())));
+            let gradient = Vector3::from(gradient::grad3(hasher.hash_3d(lattice_point.into_array())));
             value += attn.powi(4) * gradient.dot(dpos);
         }
     }
@@ -195,7 +195,7 @@ where
         if attn > 0.0 {
             let lattice_point =
                 second_simplex_base_point_i + Vector3::from(lattice_lookup).numcast().unwrap();
-            let gradient = Vector3::from(gradient::grad3(hasher.hash(&lattice_point.into_array())));
+            let gradient = Vector3::from(gradient::grad3(hasher.hash_3d(lattice_point.into_array())));
             value += attn.powi(4) * gradient.dot(dpos);
         }
     }

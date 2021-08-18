@@ -50,7 +50,7 @@ where
             {
                 let offset = Vector2::new($x, $y);
                 let vertex = stretched_floor + offset;
-                let index = hasher.hash(&vertex.numcast().unwrap().into_array());
+                let index = hasher.hash_2d(vertex.numcast().unwrap().into_array());
                 let dpos = rel_pos - (Vector2::broadcast(SQUISH_CONSTANT) * offset.sum()) - offset;
 
                 surflet(index, dpos)
@@ -133,7 +133,7 @@ where
             {
                 let offset = Vector3::new($x, $y, $z);
                 let vertex = stretched_floor + offset;
-                let index = hasher.hash(&vertex.numcast().unwrap().into_array());
+                let index = hasher.hash_3d(vertex.numcast().unwrap().into_array());
                 let dpos = rel_pos - (Vector3::broadcast(SQUISH_CONSTANT) * offset.sum()) - offset;
 
                 surflet(index, dpos)
@@ -247,7 +247,7 @@ where
             {
                 let offset = Vector4::new($x, $y, $z, $w);
                 let vertex = stretched_floor + offset;
-                let index = hasher.hash(&vertex.numcast().unwrap().into_array());
+                let index = hasher.hash_4d(vertex.numcast().unwrap().into_array());
                 let dpos = rel_pos - (Vector4::broadcast(SQUISH_CONSTANT) * offset.sum()) - offset;
 
                 surflet(index, dpos)

@@ -29,7 +29,7 @@ where
             {
                 let x = distancex - $x as f64;
                 let y = distancey - $y as f64;
-                match hasher.hash(&[cornerx + $x, cornery + $y]) & 0b11 {
+                match hasher.hash_2d([cornerx + $x, cornery + $y]) & 0b11 {
                     0 =>  x + y, // ( 1,  1)
                     1 => -x + y, // (-1,  1)
                     2 =>  x - y, // ( 1, -1)
@@ -93,7 +93,7 @@ where
                 let x = distancex - $x as f64;
                 let y = distancey - $y as f64;
                 let z = distancez - $z as f64;
-                match hasher.hash(&[cornerx + $x, cornery + $y, cornerz + $z]) & 0b1111 {
+                match hasher.hash_3d([cornerx + $x, cornery + $y, cornerz + $z]) & 0b1111 {
                     0  | 12 =>  x + y    , // ( 1,  1,  0)
                     1  | 13 => -x + y    , // (-1,  1,  0)
                     2       =>  x - y    , // ( 1, -1,  0)
@@ -183,7 +183,7 @@ where
                 let y = distancey - $y as f64;
                 let z = distancez - $z as f64;
                 let w = distancew - $w as f64;
-                match hasher.hash(&[cornerx + $x, cornery + $y, cornerz + $z, cornerw - $w]) & 0b11111 {
+                match hasher.hash_4d([cornerx + $x, cornery + $y, cornerz + $z, cornerw - $w]) & 0b11111 {
                     0  | 28 =>  x + y + z    , // ( 1,  1,  1,  0)
                     1       => -x + y + z    , // (-1,  1,  1,  0)
                     2       =>  x - y + z    , // ( 1, -1,  1,  0)

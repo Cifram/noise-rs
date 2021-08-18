@@ -88,7 +88,7 @@ where
     let far = whole + half.map(|x| !x as isize);
 
     let mut seed_cell = near;
-    let seed_index = hasher.hash(&near.into_array());
+    let seed_index = hasher.hash_2d(near.into_array());
     let seed_point = get_point(seed_index, near);
     let mut distance = distance_function(&point.into_array(), &seed_point.into_array());
 
@@ -98,7 +98,7 @@ where
         [$x:expr, $y:expr] => {
             {
                 let test_point = Vector2::from([$x, $y]);
-                let index = hasher.hash(&test_point.into_array());
+                let index = hasher.hash_2d(test_point.into_array());
                 let offset = get_point(index, test_point);
                 let cur_distance = distance_function(&point.into_array(), &offset.into_array());
                 if cur_distance < distance {
@@ -123,7 +123,7 @@ where
 
     let value = match return_type {
         ReturnType::Distance => distance,
-        ReturnType::Value => hasher.hash(&seed_cell.into_array()) as f64 / 255.0,
+        ReturnType::Value => hasher.hash_2d(seed_cell.into_array()) as f64 / 255.0,
     };
 
     value * 2.0 - 1.0
@@ -174,7 +174,7 @@ where
     let far = whole + half.map(|x| !x as isize);
 
     let mut seed_cell = near;
-    let seed_index = hasher.hash(&near.into_array());
+    let seed_index = hasher.hash_3d(near.into_array());
     let seed_point = get_point(seed_index, near);
     let mut distance = distance_function(&point.into_array(), &seed_point.into_array());
 
@@ -184,7 +184,7 @@ where
         [$x:expr, $y:expr, $z:expr] => {
             {
                 let test_point = Vector3::from([$x, $y, $z]);
-                let index = hasher.hash(&test_point.into_array());
+                let index = hasher.hash_3d(test_point.into_array());
                 let offset = get_point(index, test_point);
                 let cur_distance = distance_function(&point.into_array(), &offset.into_array());
                 if cur_distance < distance {
@@ -221,7 +221,7 @@ where
 
     let value = match return_type {
         ReturnType::Distance => distance,
-        ReturnType::Value => hasher.hash(&seed_cell.into_array()) as f64 / 255.0,
+        ReturnType::Value => hasher.hash_3d(seed_cell.into_array()) as f64 / 255.0,
     };
 
     value * 2.0 - 1.0
@@ -284,7 +284,7 @@ where
     let far = whole + half.map(|x| !x as isize);
 
     let mut seed_cell = near;
-    let seed_index = hasher.hash(&near.into_array());
+    let seed_index = hasher.hash_4d(near.into_array());
     let seed_point = get_point(seed_index, near);
     let mut distance = distance_function(&point.into_array(), &seed_point.into_array());
 
@@ -294,7 +294,7 @@ where
         [$x:expr, $y:expr, $z:expr, $w:expr] => {
             {
                 let test_point = Vector4::from([$x, $y, $z, $w]);
-                let index = hasher.hash(&test_point.into_array());
+                let index = hasher.hash_4d(test_point.into_array());
                 let offset = get_point(index, test_point);
                 let cur_distance = distance_function(&point.into_array(), &offset.into_array());
                 if cur_distance < distance {
@@ -356,7 +356,7 @@ where
 
     let value = match return_type {
         ReturnType::Distance => distance,
-        ReturnType::Value => hasher.hash(&seed_cell.into_array()) as f64 / 255.0,
+        ReturnType::Value => hasher.hash_4d(seed_cell.into_array()) as f64 / 255.0,
     };
 
     value * 2.0 - 1.0

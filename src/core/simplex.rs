@@ -97,9 +97,9 @@ where
     let distance2 = distance - Vector2::broadcast(1.0 + 2.0 * g2);
 
     // Calculate gradient indexes for each corner
-    let gi0 = hasher.hash(&cell.into_array());
-    let gi1 = hasher.hash(&(cell + distance1.numcast().unwrap()).into_array());
-    let gi2 = hasher.hash(&(cell + Vector2::one()).into_array());
+    let gi0 = hasher.hash_2d(cell.into_array());
+    let gi1 = hasher.hash_2d((cell + distance1.numcast().unwrap()).into_array());
+    let gi2 = hasher.hash_2d((cell + Vector2::one()).into_array());
 
     struct SurfletComponents {
         value: f64,
@@ -240,10 +240,10 @@ where
     let offset3 = distance - Vector3::one() + Vector3::broadcast(3.0 * g3);
 
     // Calculate gradient indexes for each corner
-    let gi0 = hasher.hash(&cell.into_array());
-    let gi1 = hasher.hash(&(cell + order1).into_array());
-    let gi2 = hasher.hash(&(cell + order2).into_array());
-    let gi3 = hasher.hash(&(cell + Vector3::one()).into_array());
+    let gi0 = hasher.hash_3d(cell.into_array());
+    let gi1 = hasher.hash_3d((cell + order1).into_array());
+    let gi2 = hasher.hash_3d((cell + order2).into_array());
+    let gi3 = hasher.hash_3d((cell + Vector3::one()).into_array());
 
     struct SurfletComponents {
         value: f64,
@@ -417,11 +417,11 @@ where
     let offset4 = distance - Vector4::one() + Vector4::broadcast(4.0 * g4);
 
     // Calculate gradient indexes for each corner
-    let gi0 = hasher.hash(&cell.into_array());
-    let gi1 = hasher.hash(&(cell + order1).into_array());
-    let gi2 = hasher.hash(&(cell + order2).into_array());
-    let gi3 = hasher.hash(&(cell + order2).into_array());
-    let gi4 = hasher.hash(&(cell + Vector4::one()).into_array());
+    let gi0 = hasher.hash_4d(cell.into_array());
+    let gi1 = hasher.hash_4d((cell + order1).into_array());
+    let gi2 = hasher.hash_4d((cell + order2).into_array());
+    let gi3 = hasher.hash_4d((cell + order2).into_array());
+    let gi4 = hasher.hash_4d((cell + Vector4::one()).into_array());
 
     struct SurfletComponents {
         value: f64,
