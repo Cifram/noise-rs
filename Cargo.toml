@@ -65,6 +65,10 @@ name = "worley_4d"
 harness = false
 
 [[example]]
+name = "fbm"
+required-features = ["image"]
+
+[[example]]
 name = "perlin"
 required-features = ["image"]
 

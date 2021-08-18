@@ -1,6 +1,6 @@
 use crate::{
-    math::vectors::*,
     noise_fns::{MultiFractal, NoiseFn, Perlin, Seedable},
+    core::fbm::{fbm_2d, fbm_3d, fbm_4d},
 };
 use alloc::vec::Vec;
 
@@ -146,83 +146,29 @@ impl Seedable for Fbm {
 /// 2-dimensional Fbm noise
 impl NoiseFn<f64, 2> for Fbm {
     fn get(&self, point: [f64; 2]) -> f64 {
-        let mut point = Vector2::from(point);
-
-        let mut result = 0.0;
-
-        point *= self.frequency;
-
-        for x in 0..self.octaves {
-            // Get the signal.
-            let mut signal = self.sources[x].get(point.into_array());
-
-            // Scale the amplitude appropriately for this frequency.
-            signal *= self.persistence.powi(x as i32);
-
-            // Add the signal to the result.
-            result += signal;
-
-            // Increase the frequency for the next octave.
-            point *= self.lacunarity;
-        }
-
-        // Scale the result into the [-1,1] range
-        result / self.scale_factor
+        fbm_2d(
+            point, self.frequency, self.lacunarity, self.persistence, self.octaves,
+            |point, octave| self.sources[octave].get(point)
+        )
     }
 }
 
 /// 3-dimensional Fbm noise
 impl NoiseFn<f64, 3> for Fbm {
     fn get(&self, point: [f64; 3]) -> f64 {
-        let mut point = Vector3::from(point);
-
-        let mut result = 0.0;
-
-        point *= self.frequency;
-
-        for x in 0..self.octaves {
-            // Get the signal.
-            let mut signal = self.sources[x].get(point.into_array());
-
-            // Scale the amplitude appropriately for this frequency.
-            signal *= self.persistence.powi(x as i32);
-
-            // Add the signal to the result.
-            result += signal;
-
-            // Increase the frequency for the next octave.
-            point *= self.lacunarity;
-        }
-
-        // Scale the result into the [-1,1] range
-        result / self.scale_factor
+        fbm_3d(
+            point, self.frequency, self.lacunarity, self.persistence, self.octaves,
+            |point, octave| self.sources[octave].get(point)
+        )
     }
 }
 
 /// 4-dimensional Fbm noise
 impl NoiseFn<f64, 4> for Fbm {
     fn get(&self, point: [f64; 4]) -> f64 {
-        let mut point = Vector4::from(point);
-
-        let mut result = 0.0;
-
-        point *= self.frequency;
-
-        for x in 0..self.octaves {
-            // Get the signal.
-            let mut signal = self.sources[x].get(point.into_array());
-
-            // Scale the amplitude appropriately for this frequency.
-            signal *= self.persistence.powi(x as i32);
-
-            // Add the signal to the result.
-            result += signal;
-
-            // Increase the frequency for the next octave.
-            point *= self.lacunarity;
-        }
-
-        // Scale the result into the [-1,1] range
-        result / self.scale_factor
+        fbm_4d(
+            point, self.frequency, self.lacunarity, self.persistence, self.octaves,
+            |point, octave| self.sources[octave].get(point)
+        )
     }
 }
