@@ -5,7 +5,10 @@ use crate::{
 };
 
 #[inline(always)]
-pub fn perlin_surflet_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
+fn base_perlin_surflet_2d<F>(point: [f64; 2], hasher: F) -> f64
+where
+    F: Fn([isize; 2]) -> usize
+{
     const SCALE_FACTOR: f64 = 3.160_493_827_160_493_7;
 
     fn surflet(index: usize, distance: Vector2<f64>) -> f64 {
@@ -29,7 +32,7 @@ pub fn perlin_surflet_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
         ($x:expr, $y:expr) => {
             {
                 let offset = Vector2::new($x, $y);
-                let index = hasher.hash_2d((corner + offset).into_array());
+                let index = hasher((corner + offset).into_array());
                 surflet(index, distance - offset.numcast().unwrap())
             }
         }
@@ -44,7 +47,11 @@ pub fn perlin_surflet_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
     ((f00 + f10 + f01 + f11) * SCALE_FACTOR).clamp(-1.0, 1.0)
 }
 
-pub fn perlin_surflet_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
+#[inline(always)]
+fn base_perlin_surflet_3d<F>(point: [f64; 3], hasher: F) -> f64
+where
+    F: Fn([isize; 3]) -> usize
+{
     const SCALE_FACTOR: f64 = 3.889_855_325_553_107_4;
 
     #[inline(always)]
@@ -69,7 +76,7 @@ pub fn perlin_surflet_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
         ($x:expr, $y:expr, $z:expr) => {
             {
                 let offset = Vector3::new($x, $y, $z);
-                let index = hasher.hash_3d((corner + offset).into_array());
+                let index = hasher((corner + offset).into_array());
                 surflet(index, distance - offset.numcast().unwrap())
             }
         }
@@ -88,7 +95,11 @@ pub fn perlin_surflet_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
     ((f000 + f100 + f010 + f110 + f001 + f101 + f011 + f111) * SCALE_FACTOR).clamp(-1.0, 1.0)
 }
 
-pub fn perlin_surflet_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
+#[inline(always)]
+fn base_perlin_surflet_4d<F>(point: [f64; 4], hasher: F) -> f64
+where
+    F: Fn([isize; 4]) -> usize
+{
     const SCALE_FACTOR: f64 = 4.424_369_240_215_691;
 
     #[inline(always)]
@@ -113,7 +124,7 @@ pub fn perlin_surflet_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
         ($x:expr, $y:expr, $z:expr, $w:expr) => {
             {
                 let offset = Vector4::new($x, $y, $z, $w);
-                let index = hasher.hash_4d((corner + offset).into_array());
+                let index = hasher((corner + offset).into_array());
                 surflet(index, distance - offset.numcast().unwrap())
             }
         }
@@ -155,4 +166,34 @@ pub fn perlin_surflet_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
         + f1111)
         * SCALE_FACTOR)
         .clamp(-1.0, 1.0)
+}
+
+#[inline(always)]
+pub fn perlin_surflet_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
+    base_perlin_surflet_2d(point, |to_hash| hasher.hash_2d(to_hash))
+}
+
+#[inline(always)]
+pub fn perlin_surflet_2d_variant(point: [f64; 2], variant: isize, hasher: &PermutationTable) -> f64 {
+    base_perlin_surflet_2d(point, |to_hash| hasher.hash_3d([to_hash[0], to_hash[1], variant]))
+}
+
+#[inline(always)]
+pub fn perlin_surflet_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
+    base_perlin_surflet_3d(point, |to_hash| hasher.hash_3d(to_hash))
+}
+
+#[inline(always)]
+pub fn perlin_surflet_3d_variant(point: [f64; 3], variant: isize, hasher: &PermutationTable) -> f64 {
+    base_perlin_surflet_3d(point, |to_hash| hasher.hash_4d([to_hash[0], to_hash[1], to_hash[2], variant]))
+}
+
+#[inline(always)]
+pub fn perlin_surflet_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
+    base_perlin_surflet_4d(point, |to_hash| hasher.hash_4d(to_hash))
+}
+
+#[inline(always)]
+pub fn perlin_surflet_4d_variant(point: [f64; 4], variant: isize, hasher: &PermutationTable) -> f64 {
+    base_perlin_surflet_4d(point, |to_hash| hasher.hash_5d([to_hash[0], to_hash[1], to_hash[2], to_hash[3], variant]))
 }
