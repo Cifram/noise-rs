@@ -1,6 +1,6 @@
 use crate::{
     gradient,
-    math::vectors::{Vector, Vector2, Vector3, Vector4},
+    math::vectors::{Vector, Vector3, Vector4},
     permutationtable::PermutationTable,
 };
 use num_traits::{Float, NumCast};
@@ -58,91 +58,95 @@ where
 
 #[inline(always)]
 pub fn simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> (f64, [f64; 2]) {
-    let f2: f64 = skew_factor(2);
-    let g2: f64 = unskew_factor(2);
+    const SKEW_FACTOR_2D: f64 = 0.366025403;
+    const UNSKEW_FACTOR_2D: f64 = 0.211324865;
 
-    let point = Vector2::from(point);
+    let [x, y] = point;
 
     /* Skew the input space to determine which simplex cell we're in */
-    let skew = point.sum() * f2; /* Hairy factor for 2D */
-    let skewed = point + Vector2::broadcast(skew);
-    let cell: Vector2<isize> = skewed.floor().numcast().unwrap();
+    let skew = (x + y) * SKEW_FACTOR_2D; /* Hairy factor for 2D */
+    let skewedx = x + skew;
+    let skewedy = y + skew;
+    let floorx = skewedx.floor();
+    let floory = skewedy.floor();
+    let cellx = floorx as isize;
+    let celly = floory as isize;
 
-    let unskew: f64 = cell.sum() as f64 * g2;
+    let unskew: f64 = (floorx + floory) as f64 * UNSKEW_FACTOR_2D;
     // Unskew the cell origin back to (x,y) space
-    let unskewed = cell.numcast().unwrap() - Vector2::broadcast(unskew);
+    let unskewedx = floorx - unskew;
+    let unskewedy = floory - unskew;
     // The x,y distances from the cell origin
-    let distance = point - unskewed;
+    let distance1x = x - unskewedx;
+    let distance1y = y - unskewedy;
 
     // For the 2D case, the simplex shape is an equilateral triangle.
     // Determine which simplex we are in.
-    let offset = if distance.x > distance.y {
+    let (offsetx, offsety) = if distance1x > distance1y {
         /* Offsets for second (middle) corner of simplex in (i,j) coords */
         // lower triangle, XY order: (0,0)->(1,0)->(1,1)
-        Vector2::from([1, 0])
+        (1.0, 0.0)
     } else {
         // upper triangle, YX order: (0,0)->(0,1)->(1,1)
-        Vector2::from([0, 1])
+        (0.0, 1.0)
     };
 
     /* A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
      * a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
      * c = (3-sqrt(3))/6   */
     // Offsets for middle corner in (x,y) unskewed coords */
-    let distance1 = distance - offset.numcast().unwrap() + Vector2::broadcast(g2);
+    let distance2x = distance1x - offsetx + UNSKEW_FACTOR_2D;
+    let distance2y = distance1y - offsety + UNSKEW_FACTOR_2D;
     /* Offsets for last corner in (x,y) unskewed coords */
-    let distance2 = distance - Vector2::broadcast(1.0 + 2.0 * g2);
-
-    // Calculate gradient indexes for each corner
-    let gi0 = hasher.hash_2d(cell.into_array());
-    let gi1 = hasher.hash_2d((cell + distance1.numcast().unwrap()).into_array());
-    let gi2 = hasher.hash_2d((cell + Vector2::one()).into_array());
+    let distance3x = distance1x - 1.0 + 2.0 * UNSKEW_FACTOR_2D;
+    let distance3y = distance1y - 1.0 + 2.0 * UNSKEW_FACTOR_2D;
 
     struct SurfletComponents {
         value: f64,
         t: f64,
         t2: f64,
         t4: f64,
-        gradient: Vector2<f64>,
+        gradx: f64,
+        grady: f64,
     }
 
-    impl SurfletComponents {
-        fn zeros() -> Self {
-            Self {
-                value: 0.0,
-                t: 0.0,
-                t2: 0.0,
-                t4: 0.0,
-                gradient: Vector2::zero(),
-            }
-        }
-    }
-
-    fn surflet(gradient_index: usize, point: Vector2<f64>) -> SurfletComponents {
-        // let t = 0.5 - (x * x + y * y);
-        let t = 0.5 - point.magnitude_squared();
+    #[inline(always)]
+    fn surflet(grad_index: usize, x: f64, y: f64) -> SurfletComponents {
+        let t = 0.5 - (x*x + y*y);
 
         if t > 0.0 {
-            let gradient = Vector2::from(gradient::grad2(gradient_index));
+            let [gradx, grady] = gradient::grad2(grad_index);
             let t2 = t * t;
             let t4 = t2 * t2;
 
             SurfletComponents {
-                value: t4 * gradient.dot(point),
+                value: t4 * (gradx * x + grady * y),
                 t,
                 t2,
                 t4,
-                gradient,
+                gradx,
+                grady,
             }
         } else {
             // No influence
-            SurfletComponents::zeros()
+            SurfletComponents {
+                value: 0.0,
+                t: 0.0,
+                t2: 0.0,
+                t4: 0.0,
+                gradx: 0.0,
+                grady: 0.0,
+            }
         }
     }
 
-    let corner0 = surflet(gi0, distance);
-    let corner1 = surflet(gi1, distance1);
-    let corner2 = surflet(gi2, distance2);
+    // Calculate gradient indexes for each corner
+    let grad_index0 = hasher.hash_2d([cellx, celly]);
+    let grad_index1 = hasher.hash_2d([cellx + offsetx as isize, celly + offsety as isize]);
+    let grad_index2 = hasher.hash_2d([cellx + 1, celly + 1]);
+    let corner0 = surflet(grad_index0, distance1x, distance1y);
+    let corner1 = surflet(grad_index1, distance2x, distance2y);
+    let corner2 = surflet(grad_index2, distance3x, distance3y);
 
     /* Add contributions from each corner to get the final noise value.
      * The result is scaled to return values in the interval [-1, 1]. */
@@ -156,24 +160,28 @@ pub fn simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> (f64, [f64; 2])
      *    dnoise_dx += -8.0 * t22 * t2 * x2 * ( gx2 * x2 + gy2 * y2 ) + t42 * gx2;
      *    dnoise_dy += -8.0 * t22 * t2 * y2 * ( gx2 * x2 + gy2 * y2 ) + t42 * gy2;
      */
-    let temp0 = corner0.t2 * corner0.t * corner0.gradient.dot(distance);
-    let mut dnoise = distance + Vector2::broadcast(temp0);
+    let temp0 = corner0.t2 * corner0.t * (corner0.gradx*distance1x + corner0.grady*distance1y);
+    let mut dnoisex = distance1x + temp0;
+    let mut dnoisey = distance1y + temp0;
 
-    let temp1 = corner1.t2 * corner1.t * corner1.gradient.dot(distance1);
-    dnoise += distance1 * temp1;
+    let temp1 = corner1.t2 * corner1.t * (corner1.gradx*distance2x + corner1.grady*distance2y);
+    dnoisex += distance2x * temp1;
+    dnoisey += distance2y * temp1;
 
-    let temp2 = corner2.t2 * corner2.t * corner2.gradient.dot(distance2);
-    dnoise += distance2 * temp2;
+    let temp2 = corner2.t2 * corner2.t * (corner2.gradx*distance3x + corner2.grady*distance3y);
+    dnoisex += distance2x * temp2;
+    dnoisey += distance2y * temp2;
 
-    dnoise *= -8.0;
+    dnoisex *= -8.0;
+    dnoisey *= -8.0;
 
-    dnoise += corner0.gradient * corner0.t4
-        + corner1.gradient * corner1.t4
-        + corner2.gradient * corner2.t4;
+    dnoisex += corner0.gradx * corner0.t4 + corner1.gradx * corner1.t4 + corner2.gradx * corner2.t4;
+    dnoisey += corner0.grady * corner0.t4 + corner1.grady * corner1.t4 + corner2.grady * corner2.t4;
 
-    dnoise *= 40.0; /* Scale derivative to match the noise scaling */
+    dnoisex *= 40.0; /* Scale derivative to match the noise scaling */
+    dnoisey *= 40.0;
 
-    (noise, dnoise.into())
+    (noise, [dnoisex, dnoisey])
 }
 
 #[inline(always)]
