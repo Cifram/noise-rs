@@ -1,13 +1,10 @@
 use crate::{
     gradient,
     math::vectors::{Vector, Vector2, Vector3, Vector4, VectorMap},
-    permutationtable::NoiseHasher,
+    permutationtable::PermutationTable,
 };
 
-pub fn open_simplex_2d<NH>(point: [f64; 2], hasher: &NH) -> f64
-where
-    NH: NoiseHasher + ?Sized,
-{
+pub fn open_simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
     const STRETCH_CONSTANT: f64 = -0.211_324_865_405_187; //(1/sqrt(2+1)-1)/2;
     const SQUISH_CONSTANT: f64 = 0.366_025_403_784_439; //(sqrt(2+1)-1)/2;
     const NORM_CONSTANT: f64 = 1.0 / 14.0;
@@ -85,10 +82,7 @@ where
     value * NORM_CONSTANT
 }
 
-pub fn open_simplex_3d<NH>(point: [f64; 3], hasher: &NH) -> f64
-where
-    NH: NoiseHasher,
-{
+pub fn open_simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
     const STRETCH_CONSTANT: f64 = -1.0 / 6.0; //(1/Math.sqrt(3+1)-1)/3;
     const SQUISH_CONSTANT: f64 = 1.0 / 3.0; //(Math.sqrt(3+1)-1)/3;
     const NORM_CONSTANT: f64 = 1.0 / 14.0;
@@ -196,10 +190,7 @@ where
     value * NORM_CONSTANT
 }
 
-pub fn open_simplex_4d<NH>(point: [f64; 4], hasher: &NH) -> f64
-where
-    NH: NoiseHasher + ?Sized,
-{
+pub fn open_simplex_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
     const STRETCH_CONSTANT: f64 = -0.138_196_601_125_011; //(Math.sqrt(4+1)-1)/4;
     const SQUISH_CONSTANT: f64 = 0.309_016_994_374_947; //(Math.sqrt(4+1)-1)/4;
 

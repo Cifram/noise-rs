@@ -9,14 +9,6 @@ use rand_xorshift::XorShiftRng;
 
 const TABLE_SIZE: usize = 256;
 
-pub trait NoiseHasher: Send + Sync {
-    fn hash_1d(&self, to_hash: isize) -> usize;
-    fn hash_2d(&self, to_hash: [isize; 2]) -> usize;
-    fn hash_3d(&self, to_hash: [isize; 3]) -> usize;
-    fn hash_4d(&self, to_hash: [isize; 4]) -> usize;
-    fn hash_5d(&self, to_hash: [isize; 5]) -> usize;
-}
-
 /// A seed table, required by all noise functions.
 ///
 /// Table creation is expensive, so in most circumstances you'll only want to
@@ -63,31 +55,29 @@ impl PermutationTable {
         let mut rng: XorShiftRng = SeedableRng::from_seed(real);
         rng.gen()
     }
-}
 
-impl NoiseHasher for PermutationTable {
     #[inline(always)]
-    fn hash_1d(&self, to_hash: isize) -> usize {
+    pub fn hash_1d(&self, to_hash: isize) -> usize {
         self.values[(to_hash & 0xff) as usize]
     }
 
     #[inline(always)]
-    fn hash_2d(&self, to_hash: [isize; 2]) -> usize {
+    pub fn hash_2d(&self, to_hash: [isize; 2]) -> usize {
         self.hash_1d(to_hash[1] ^ self.hash_1d(to_hash[0]) as isize)
     }
 
     #[inline(always)]
-    fn hash_3d(&self, to_hash: [isize; 3]) -> usize {
+    pub fn hash_3d(&self, to_hash: [isize; 3]) -> usize {
         self.hash_1d(to_hash[2] ^ self.hash_2d([to_hash[0], to_hash[1]]) as isize)
     }
 
     #[inline(always)]
-    fn hash_4d(&self, to_hash: [isize; 4]) -> usize {
+    pub fn hash_4d(&self, to_hash: [isize; 4]) -> usize {
         self.hash_1d(to_hash[3] ^ self.hash_3d([to_hash[0], to_hash[1], to_hash[2]]) as isize)
     }
 
     #[inline(always)]
-    fn hash_5d(&self, to_hash: [isize; 5]) -> usize {
+    pub fn hash_5d(&self, to_hash: [isize; 5]) -> usize {
         self.hash_1d(to_hash[4] ^ self.hash_4d([to_hash[0], to_hash[1], to_hash[2], to_hash[3]]) as isize)
     }
 }

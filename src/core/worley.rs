@@ -1,6 +1,6 @@
 use crate::{
     math::vectors::{Vector, Vector2, Vector3, Vector4, VectorMap},
-    permutationtable::NoiseHasher,
+    permutationtable::PermutationTable,
 };
 use core::f64;
 
@@ -62,15 +62,14 @@ pub mod distance_functions {
     }
 }
 
-pub fn worley_2d<F, NH>(
-    hasher: &NH,
+pub fn worley_2d<F>(
+    hasher: &PermutationTable,
     distance_function: F,
     return_type: ReturnType,
     point: [f64; 2],
 ) -> f64
 where
     F: Fn(&[f64], &[f64]) -> f64,
-    NH: NoiseHasher + ?Sized,
 {
     let point = Vector2::from(point);
 
@@ -148,15 +147,14 @@ fn get_vec2(index: usize) -> Vector2<f64> {
 }
 
 #[inline(always)]
-pub fn worley_3d<F, NH>(
-    hasher: &NH,
+pub fn worley_3d<F>(
+    hasher: &PermutationTable,
     distance_function: F,
     return_type: ReturnType,
     point: [f64; 3],
 ) -> f64
 where
     F: Fn(&[f64], &[f64]) -> f64,
-    NH: NoiseHasher + ?Sized,
 {
     let point = Vector3::from(point);
 
@@ -258,15 +256,14 @@ fn get_vec3(index: usize) -> Vector3<f64> {
 
 #[inline(always)]
 #[allow(clippy::cognitive_complexity)]
-pub fn worley_4d<F, NH>(
-    hasher: &NH,
+pub fn worley_4d<F>(
+    hasher: &PermutationTable,
     distance_function: F,
     return_type: ReturnType,
     point: [f64; 4],
 ) -> f64
 where
     F: Fn(&[f64], &[f64]) -> f64,
-    NH: NoiseHasher + ?Sized,
 {
     let point = Vector4::from(point);
 

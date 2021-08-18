@@ -1,7 +1,7 @@
 use crate::{
     gradient,
     math::vectors::{Vector, Vector2, Vector3, Vector4},
-    permutationtable::NoiseHasher,
+    permutationtable::PermutationTable,
 };
 use num_traits::{Float, NumCast};
 
@@ -57,10 +57,7 @@ where
 ///  */
 
 #[inline(always)]
-pub fn simplex_2d<NH>(point: [f64; 2], hasher: &NH) -> (f64, [f64; 2])
-where
-    NH: NoiseHasher + ?Sized,
-{
+pub fn simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> (f64, [f64; 2]) {
     let f2: f64 = skew_factor(2);
     let g2: f64 = unskew_factor(2);
 
@@ -180,10 +177,7 @@ where
 }
 
 #[inline(always)]
-pub fn simplex_3d<NH>(point: [f64; 3], hasher: &NH) -> (f64, [f64; 3])
-where
-    NH: NoiseHasher + ?Sized,
-{
+pub fn simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> (f64, [f64; 3]) {
     let f3: f64 = skew_factor(3);
     let g3: f64 = unskew_factor(3);
 
@@ -336,10 +330,7 @@ where
 }
 
 #[inline(always)]
-pub fn simplex_4d<NH>(point: [f64; 4], hasher: &NH) -> (f64, [f64; 4])
-where
-    NH: NoiseHasher + ?Sized,
-{
+pub fn simplex_4d(point: [f64; 4], hasher: &PermutationTable) -> (f64, [f64; 4]) {
     let f4: f64 = skew_factor(4);
     let g4: f64 = unskew_factor(4);
 

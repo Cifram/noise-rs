@@ -1,14 +1,11 @@
 use crate::{
     math::s_curve::quintic::Quintic,
-    permutationtable::NoiseHasher,
+    permutationtable::PermutationTable,
 };
 use core::f64;
 
 #[inline(always)]
-pub fn perlin_2d<NH>(point: [f64; 2], hasher: &NH) -> f64
-where
-    NH: NoiseHasher + ?Sized,
-{
+pub fn perlin_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
     // Unscaled range of linearly interpolated perlin noise should be (-sqrt(N)/2, sqrt(N)/2).
     // Need to invert this value and multiply the unscaled result by the value to get a scaled
     // range of (-1, 1).
@@ -62,10 +59,7 @@ where
 }
 
 #[inline(always)]
-pub fn perlin_3d<NH>(point: [f64; 3], hasher: &NH) -> f64
-where
-    NH: NoiseHasher + ?Sized,
-{
+pub fn perlin_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
     // Unscaled range of linearly interpolated perlin noise should be (-sqrt(N)/2, sqrt(N)/2).
     // Need to invert this value and multiply the unscaled result by the value to get a scaled
     // range of (-1, 1).
@@ -153,10 +147,7 @@ where
 }
 
 #[inline(always)]
-pub fn perlin_4d<NH>(point: [f64; 4], hasher: &NH) -> f64
-where
-    NH: NoiseHasher + ?Sized,
-{
+pub fn perlin_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
     // Unscaled range of linearly interpolated perlin noise should be (-sqrt(N)/2, sqrt(N)/2).
     // Need to invert this value and multiply the unscaled result by the value to get a scaled
     // range of (-1, 1).

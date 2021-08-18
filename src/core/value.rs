@@ -1,12 +1,9 @@
 use crate::{
     math::{interpolate, s_curve::quintic::Quintic, vectors::*},
-    permutationtable::NoiseHasher,
+    permutationtable::PermutationTable,
 };
 
-pub fn value_2d<NH>(point: [f64; 2], hasher: &NH) -> f64
-where
-    NH: NoiseHasher + ?Sized,
-{
+pub fn value_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
     let point = Vector2::from(point);
 
     let floored = point.floor();
@@ -33,10 +30,7 @@ where
     d * 2.0 - 1.0
 }
 
-pub fn value_3d<NH>(point: [f64; 3], hasher: &NH) -> f64
-where
-    NH: NoiseHasher + ?Sized,
-{
+pub fn value_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
     let point = Vector3::from(point);
 
     let floored = point.floor();
@@ -71,10 +65,7 @@ where
     d * 2.0 - 1.0
 }
 
-pub fn value_4d<NH>(point: [f64; 4], hasher: &NH) -> f64
-where
-    NH: NoiseHasher + ?Sized,
-{
+pub fn value_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
     let point = Vector4::from(point);
 
     let floored = point.floor();

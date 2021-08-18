@@ -1,18 +1,16 @@
-use crate::{math::interpolate, noise_fns::NoiseFn, permutationtable::NoiseHasher, utils::noise_map::NoiseMap};
+use crate::{math::interpolate, noise_fns::NoiseFn, permutationtable::PermutationTable, utils::noise_map::NoiseMap};
 
-pub struct NoiseFnWrapper<NH, F, const DIM: usize>
+pub struct NoiseFnWrapper<F, const DIM: usize>
 where
-    NH: NoiseHasher,
-    F: Fn([f64; DIM], &NH) -> f64,
+    F: Fn([f64; DIM], &PermutationTable) -> f64,
 {
-    hasher: NH,
+    hasher: PermutationTable,
     func: F,
 }
 
-impl<NH, F, const DIM: usize> NoiseFn<f64, DIM> for NoiseFnWrapper<NH, F, DIM>
+impl<F, const DIM: usize> NoiseFn<f64, DIM> for NoiseFnWrapper<F, DIM>
 where
-    NH: NoiseHasher,
-    F: Fn([f64; DIM], &NH) -> f64,
+    F: Fn([f64; DIM], &PermutationTable) -> f64,
 {
     fn get(&self, point: [f64; DIM]) -> f64 {
         (self.func)(point, &self.hasher)
@@ -171,12 +169,11 @@ where
     source_module: SourceModule,
 }
 
-impl<NH, F, const DIM: usize> PlaneMapBuilder<NoiseFnWrapper<NH, F, DIM>, DIM>
+impl<F, const DIM: usize> PlaneMapBuilder<NoiseFnWrapper<F, DIM>, DIM>
 where
-    NH: NoiseHasher + Clone,
-    F: Fn([f64; DIM], &NH) -> f64,
+    F: Fn([f64; DIM], &PermutationTable) -> f64,
 {
-    pub fn new_fn(func: F, hasher: &NH) -> Self {
+    pub fn new_fn(func: F, hasher: &PermutationTable) -> Self {
         PlaneMapBuilder {
             is_seamless: false,
             x_bounds: (-1.0, 1.0),

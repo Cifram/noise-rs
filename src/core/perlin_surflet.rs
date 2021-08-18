@@ -1,14 +1,11 @@
 use crate::{
     gradient,
     math::vectors::{Vector, Vector2, Vector3, Vector4},
-    permutationtable::NoiseHasher,
+    permutationtable::PermutationTable,
 };
 
 #[inline(always)]
-pub fn perlin_surflet_2d<NH>(point: [f64; 2], hasher: &NH) -> f64
-where
-    NH: NoiseHasher + ?Sized,
-{
+pub fn perlin_surflet_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
     const SCALE_FACTOR: f64 = 3.160_493_827_160_493_7;
 
     fn surflet(index: usize, distance: Vector2<f64>) -> f64 {
@@ -47,10 +44,7 @@ where
     ((f00 + f10 + f01 + f11) * SCALE_FACTOR).clamp(-1.0, 1.0)
 }
 
-pub fn perlin_surflet_3d<NH>(point: [f64; 3], hasher: &NH) -> f64
-where
-    NH: NoiseHasher + ?Sized,
-{
+pub fn perlin_surflet_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
     const SCALE_FACTOR: f64 = 3.889_855_325_553_107_4;
 
     #[inline(always)]
@@ -94,10 +88,7 @@ where
     ((f000 + f100 + f010 + f110 + f001 + f101 + f011 + f111) * SCALE_FACTOR).clamp(-1.0, 1.0)
 }
 
-pub fn perlin_surflet_4d<NH>(point: [f64; 4], hasher: &NH) -> f64
-where
-    NH: NoiseHasher + ?Sized,
-{
+pub fn perlin_surflet_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
     const SCALE_FACTOR: f64 = 4.424_369_240_215_691;
 
     #[inline(always)]
