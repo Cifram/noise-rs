@@ -4,21 +4,30 @@ extern crate noise;
 
 use criterion::{black_box, Criterion};
 use noise::{
-    core::simplex::{simplex_2d, simplex_3d, simplex_4d},
+    core::simplex::{
+        simplex_2d, simplex_3d, simplex_4d,
+        simplex_2d_deriv, simplex_3d_deriv, simplex_4d_deriv,
+    },
     permutationtable::PermutationTable,
 };
 
 criterion_group!(
     simplex,
     bench_simplex2,
+    bench_simplex2_deriv,
     bench_simplex3,
-    bench_simplex4
+    bench_simplex3_deriv,
+    bench_simplex4,
+    bench_simplex4_deriv,
 );
 criterion_group!(
     simplex_64x64,
     bench_simplex2_64x64,
+    bench_simplex2_deriv_64x64,
     bench_simplex3_64x64,
-    bench_simplex4_64x64
+    bench_simplex3_deriv_64x64,
+    bench_simplex4_64x64,
+    bench_simplex4_deriv_64x64,
 );
 criterion_main!(simplex, simplex_64x64);
 
@@ -29,10 +38,24 @@ fn bench_simplex2(c: &mut Criterion) {
     });
 }
 
+fn bench_simplex2_deriv(c: &mut Criterion) {
+    let hasher = PermutationTable::new(0);
+    c.bench_function("simplex 2d deriv", |b| {
+        b.iter(|| simplex_2d_deriv(black_box([42.0_f64, 37.0]), &hasher))
+    });
+}
+
 fn bench_simplex3(c: &mut Criterion) {
     let hasher = PermutationTable::new(0);
     c.bench_function("simplex 3d", |b| {
         b.iter(|| simplex_3d(black_box([42.0_f64, 37.0, 26.0]), &hasher))
+    });
+}
+
+fn bench_simplex3_deriv(c: &mut Criterion) {
+    let hasher = PermutationTable::new(0);
+    c.bench_function("simplex 3d deriv", |b| {
+        b.iter(|| simplex_3d_deriv(black_box([42.0_f64, 37.0, 26.0]), &hasher))
     });
 }
 
@@ -43,6 +66,13 @@ fn bench_simplex4(c: &mut Criterion) {
     });
 }
 
+fn bench_simplex4_deriv(c: &mut Criterion) {
+    let hasher = PermutationTable::new(0);
+    c.bench_function("simplex 4d deriv", |b| {
+        b.iter(|| simplex_4d_deriv(black_box([42.0_f64, 37.0, 26.0, 128.0]), &hasher))
+    });
+}
+
 fn bench_simplex2_64x64(c: &mut Criterion) {
     let hasher = PermutationTable::new(0);
     c.bench_function("simplex 2d (64x64)", |b| {
@@ -50,6 +80,19 @@ fn bench_simplex2_64x64(c: &mut Criterion) {
             for y in 0i8..64 {
                 for x in 0i8..64 {
                     black_box(simplex_2d([x as f64, y as f64], &hasher));
+                }
+            }
+        })
+    });
+}
+
+fn bench_simplex2_deriv_64x64(c: &mut Criterion) {
+    let hasher = PermutationTable::new(0);
+    c.bench_function("simplex 2d deriv (64x64)", |b| {
+        b.iter(|| {
+            for y in 0i8..64 {
+                for x in 0i8..64 {
+                    black_box(simplex_2d_deriv([x as f64, y as f64], &hasher));
                 }
             }
         })
@@ -69,6 +112,19 @@ fn bench_simplex3_64x64(c: &mut Criterion) {
     });
 }
 
+fn bench_simplex3_deriv_64x64(c: &mut Criterion) {
+    let hasher = PermutationTable::new(0);
+    c.bench_function("simplex 3d deriv (64x64)", |b| {
+        b.iter(|| {
+            for y in 0i8..64 {
+                for x in 0i8..64 {
+                    black_box(simplex_3d_deriv([x as f64, y as f64, x as f64], &hasher));
+                }
+            }
+        })
+    });
+}
+
 fn bench_simplex4_64x64(c: &mut Criterion) {
     let hasher = PermutationTable::new(0);
     c.bench_function("simplex 4d (64x64)", |b| {
@@ -76,6 +132,19 @@ fn bench_simplex4_64x64(c: &mut Criterion) {
             for y in 0i8..64 {
                 for x in 0i8..64 {
                     black_box(simplex_4d([x as f64, y as f64, x as f64, y as f64], &hasher));
+                }
+            }
+        })
+    });
+}
+
+fn bench_simplex4_deriv_64x64(c: &mut Criterion) {
+    let hasher = PermutationTable::new(0);
+    c.bench_function("simplex 4d deriv (64x64)", |b| {
+        b.iter(|| {
+            for y in 0i8..64 {
+                for x in 0i8..64 {
+                    black_box(simplex_4d_deriv([x as f64, y as f64, x as f64, y as f64], &hasher));
                 }
             }
         })

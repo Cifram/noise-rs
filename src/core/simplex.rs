@@ -27,7 +27,10 @@ use crate::{
 ///  */
 
 #[inline(always)]
-pub fn simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> (f64, [f64; 2]) {
+fn base_simplex_2d<F>(point: [f64; 2], hasher: F) -> (f64, [f64; 2])
+where
+    F: Fn([isize; 2]) -> usize
+{
     const SKEW_FACTOR_2D: f64 = 0.366025403;
     const UNSKEW_FACTOR_2D: f64 = 0.211324865;
 
@@ -91,36 +94,30 @@ pub fn simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> (f64, [f64; 2])
 
             SurfletComponents {
                 value: t4 * (gradx * x + grady * y),
-                t,
-                t2,
-                t4,
-                gradx,
-                grady,
+                t, t2, t4,
+                gradx, grady,
             }
         } else {
             // No influence
             SurfletComponents {
                 value: 0.0,
-                t: 0.0,
-                t2: 0.0,
-                t4: 0.0,
-                gradx: 0.0,
-                grady: 0.0,
+                t: 0.0, t2: 0.0, t4: 0.0,
+                gradx: 0.0, grady: 0.0
             }
         }
     }
 
     // Calculate gradient indexes for each corner
-    let grad_index0 = hasher.hash_2d([cellx, celly]);
-    let grad_index1 = hasher.hash_2d([cellx + offsetx as isize, celly + offsety as isize]);
-    let grad_index2 = hasher.hash_2d([cellx + 1, celly + 1]);
-    let corner0 = surflet(grad_index0, distance1x, distance1y);
-    let corner1 = surflet(grad_index1, distance2x, distance2y);
-    let corner2 = surflet(grad_index2, distance3x, distance3y);
+    let grad_index1 = hasher([cellx, celly]);
+    let grad_index2 = hasher([cellx + offsetx as isize, celly + offsety as isize]);
+    let grad_index3 = hasher([cellx + 1, celly + 1]);
+    let corner1 = surflet(grad_index1, distance1x, distance1y);
+    let corner2 = surflet(grad_index2, distance2x, distance2y);
+    let corner3 = surflet(grad_index3, distance3x, distance3y);
 
     /* Add contributions from each corner to get the final noise value.
      * The result is scaled to return values in the interval [-1, 1]. */
-    let noise = 40.0 * (corner0.value + corner1.value + corner2.value);
+    let noise = 40.0 * (corner1.value + corner2.value + corner3.value);
 
     /*  A straight, unoptimised calculation would be like:
      *    dnoise_dx = -8.0 * t20 * t0 * x0 * ( gx0 * x0 + gy0 * y0 ) + t40 * gx0;
@@ -130,23 +127,23 @@ pub fn simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> (f64, [f64; 2])
      *    dnoise_dx += -8.0 * t22 * t2 * x2 * ( gx2 * x2 + gy2 * y2 ) + t42 * gx2;
      *    dnoise_dy += -8.0 * t22 * t2 * y2 * ( gx2 * x2 + gy2 * y2 ) + t42 * gy2;
      */
-    let temp0 = corner0.t2 * corner0.t * (corner0.gradx*distance1x + corner0.grady*distance1y);
+    let temp0 = corner1.t2 * corner1.t * (corner1.gradx*distance1x + corner1.grady*distance1y);
     let mut dnoisex = distance1x + temp0;
     let mut dnoisey = distance1y + temp0;
 
-    let temp1 = corner1.t2 * corner1.t * (corner1.gradx*distance2x + corner1.grady*distance2y);
+    let temp1 = corner2.t2 * corner2.t * (corner2.gradx*distance2x + corner2.grady*distance2y);
     dnoisex += distance2x * temp1;
     dnoisey += distance2y * temp1;
 
-    let temp2 = corner2.t2 * corner2.t * (corner2.gradx*distance3x + corner2.grady*distance3y);
+    let temp2 = corner3.t2 * corner3.t * (corner3.gradx*distance3x + corner3.grady*distance3y);
     dnoisex += distance2x * temp2;
     dnoisey += distance2y * temp2;
 
     dnoisex *= -8.0;
     dnoisey *= -8.0;
 
-    dnoisex += corner0.gradx * corner0.t4 + corner1.gradx * corner1.t4 + corner2.gradx * corner2.t4;
-    dnoisey += corner0.grady * corner0.t4 + corner1.grady * corner1.t4 + corner2.grady * corner2.t4;
+    dnoisex += corner1.gradx * corner1.t4 + corner2.gradx * corner2.t4 + corner3.gradx * corner3.t4;
+    dnoisey += corner1.grady * corner1.t4 + corner2.grady * corner2.t4 + corner3.grady * corner3.t4;
 
     dnoisex *= 40.0; /* Scale derivative to match the noise scaling */
     dnoisey *= 40.0;
@@ -155,7 +152,10 @@ pub fn simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> (f64, [f64; 2])
 }
 
 #[inline(always)]
-pub fn simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> (f64, [f64; 3]) {
+fn base_simplex_3d<F>(point: [f64; 3], hasher: F) -> (f64, [f64; 3])
+where
+    F: Fn([isize; 3]) -> usize
+{
     const SKEW_FACTOR_3D: f64 = 0.333333333;
     const UNSKEW_FACTOR_3D: f64 = 0.166666667;
 
@@ -229,10 +229,10 @@ pub fn simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> (f64, [f64; 3])
     let distance4z = distance1z - 1.0 + 3.0 * UNSKEW_FACTOR_3D;
 
     // Calculate gradient indexes for each corner
-    let gi0 = hasher.hash_3d([cellx, celly, cellz]);
-    let gi1 = hasher.hash_3d([cellx + order1x, celly + order1y, cellz + order1z]);
-    let gi2 = hasher.hash_3d([cellx + order2x, celly + order2y, cellz + order2z]);
-    let gi3 = hasher.hash_3d([cellx + 1, celly + 1, cellz + 1]);
+    let gi1 = hasher([cellx, celly, cellz]);
+    let gi2 = hasher([cellx + order1x, celly + order1y, cellz + order1z]);
+    let gi3 = hasher([cellx + order2x, celly + order2y, cellz + order2z]);
+    let gi4 = hasher([cellx + 1, celly + 1, cellz + 1]);
 
     struct SurfletComponents {
         value: f64,
@@ -272,14 +272,14 @@ pub fn simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> (f64, [f64; 3])
     }
 
     /* Calculate the contribution from the four corners */
-    let corner0 = surflet(gi0, distance1x, distance1y, distance1z);
-    let corner1 = surflet(gi1, distance2x, distance2y, distance2z);
-    let corner2 = surflet(gi2, distance3x, distance3y, distance3z);
-    let corner3 = surflet(gi3, distance4x, distance4y, distance4z);
+    let corner1 = surflet(gi1, distance1x, distance1y, distance1z);
+    let corner2 = surflet(gi2, distance2x, distance2y, distance2z);
+    let corner3 = surflet(gi3, distance3x, distance3y, distance3z);
+    let corner4 = surflet(gi4, distance4x, distance4y, distance4z);
 
     /*  Add contributions from each corner to get the final noise value.
      * The result is scaled to return values in the range [-1,1] */
-    let noise = 28.0 * (corner0.value + corner1.value + corner2.value + corner3.value);
+    let noise = 28.0 * (corner1.value + corner2.value + corner3.value + corner4.value);
 
     /*  A straight, unoptimised calculation would be like:
      *    dnoise_dx = -8.0 * t20 * t0 * x0 * dot(gx0, gy0, gz0, x0, y0, z0) + t40 * gx0;
@@ -295,22 +295,22 @@ pub fn simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> (f64, [f64; 3])
      *    dnoise_dy += -8.0 * t23 * t3 * y3 * dot(gx3, gy3, gz3, x3, y3, z3) + t43 * gy3;
      *    dnoise_dz += -8.0 * t23 * t3 * z3 * dot(gx3, gy3, gz3, x3, y3, z3) + t43 * gz3;
      */
-    let temp0 = corner0.t2 * corner0.t * (corner0.gradx*distance1x + corner0.grady*distance1y + corner0.gradz*distance1z);
+    let temp0 = corner1.t2 * corner1.t * (corner1.gradx*distance1x + corner1.grady*distance1y + corner1.gradz*distance1z);
     let mut dnoisex = distance1x * temp0;
     let mut dnoisey = distance1y * temp0;
     let mut dnoisez = distance1z * temp0;
 
-    let temp1 = corner1.t2 * corner1.t * (corner1.gradx*distance2x + corner1.grady*distance2y + corner1.gradz*distance2z);
+    let temp1 = corner2.t2 * corner2.t * (corner2.gradx*distance2x + corner2.grady*distance2y + corner2.gradz*distance2z);
     dnoisex += distance2x * temp1;
     dnoisey += distance2y * temp1;
     dnoisez += distance2z * temp1;
 
-    let temp2 = corner2.t2 * corner2.t * (corner2.gradx*distance3x + corner2.grady*distance3y + corner2.gradz*distance3z);
+    let temp2 = corner3.t2 * corner3.t * (corner3.gradx*distance3x + corner3.grady*distance3y + corner3.gradz*distance3z);
     dnoisex += distance3x * temp2;
     dnoisey += distance3y * temp2;
     dnoisez += distance3z * temp2;
 
-    let temp3 = corner3.t2 * corner3.t * (corner3.gradx*distance4x + corner3.grady*distance4y + corner3.gradz*distance4z);
+    let temp3 = corner4.t2 * corner4.t * (corner4.gradx*distance4x + corner4.grady*distance4y + corner4.gradz*distance4z);
     dnoisex += distance4x * temp3;
     dnoisey += distance4y * temp3;
     dnoisez += distance4z * temp3;
@@ -320,20 +320,20 @@ pub fn simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> (f64, [f64; 3])
     dnoisez *= -8.0;
 
     dnoisex +=
-        corner0.gradx * corner0.t4 +
         corner1.gradx * corner1.t4 +
         corner2.gradx * corner2.t4 +
-        corner3.gradx * corner3.t4;
+        corner3.gradx * corner3.t4 +
+        corner4.gradx * corner4.t4;
     dnoisey +=
-        corner0.grady * corner0.t4 +
         corner1.grady * corner1.t4 +
         corner2.grady * corner2.t4 +
-        corner3.grady * corner3.t4;
+        corner3.grady * corner3.t4 +
+        corner4.grady * corner4.t4;
     dnoisez +=
-        corner0.gradz * corner0.t4 +
         corner1.gradz * corner1.t4 +
         corner2.gradz * corner2.t4 +
-        corner3.gradz * corner3.t4;
+        corner3.gradz * corner3.t4 +
+        corner4.gradz * corner4.t4;
 
     /* Scale derivative to match the noise scaling */
     dnoisex *= 28.0;
@@ -344,7 +344,10 @@ pub fn simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> (f64, [f64; 3])
 }
 
 #[inline(always)]
-pub fn simplex_4d(point: [f64; 4], hasher: &PermutationTable) -> (f64, [f64; 4]) {
+fn base_simplex_4d<F>(point: [f64; 4], hasher: F) -> (f64, [f64; 4])
+where
+    F: Fn([isize; 4]) -> usize
+{
     const SKEW_FACTOR_4D: f64 = 0.309016994;
     const UNSKEW_FACTOR_4D: f64 = 0.138196601;
 
@@ -440,11 +443,11 @@ pub fn simplex_4d(point: [f64; 4], hasher: &PermutationTable) -> (f64, [f64; 4])
     let distance5w = distance1w - 1.0 + 4.0 * UNSKEW_FACTOR_4D;
 
     // Calculate gradient indexes for each corner
-    let gi0 = hasher.hash_4d([cellx, celly, cellz, cellw]);
-    let gi1 = hasher.hash_4d([cellx + order1x, celly + order1y, cellz + order1z, cellw + order1w]);
-    let gi2 = hasher.hash_4d([cellx + order2x, celly + order2y, cellz + order2z, cellw + order2w]);
-    let gi3 = hasher.hash_4d([cellx + order3x, celly + order3y, cellz + order3z, cellw + order3w]);
-    let gi4 = hasher.hash_4d([cellx + 1, celly + 1, cellz + 1, cellw + 1]);
+    let gi1 = hasher([cellx, celly, cellz, cellw]);
+    let gi2 = hasher([cellx + order1x, celly + order1y, cellz + order1z, cellw + order1w]);
+    let gi3 = hasher([cellx + order2x, celly + order2y, cellz + order2z, cellw + order2w]);
+    let gi4 = hasher([cellx + order3x, celly + order3y, cellz + order3z, cellw + order3w]);
+    let gi5 = hasher([cellx + 1, celly + 1, cellz + 1, cellw + 1]);
 
     struct SurfletComponents {
         value: f64,
@@ -481,15 +484,15 @@ pub fn simplex_4d(point: [f64; 4], hasher: &PermutationTable) -> (f64, [f64; 4])
     }
 
     /* Calculate the contribution from the five corners */
-    let corner0 = surflet(gi0, distance1x, distance1y, distance1z, distance1w);
-    let corner1 = surflet(gi1, distance2x, distance2y, distance2z, distance2w);
-    let corner2 = surflet(gi2, distance3x, distance3y, distance3z, distance3w);
-    let corner3 = surflet(gi3, distance4x, distance4y, distance4z, distance4w);
-    let corner4 = surflet(gi4, distance5x, distance5y, distance5z, distance5w);
+    let corner1 = surflet(gi1, distance1x, distance1y, distance1z, distance1w);
+    let corner2 = surflet(gi2, distance2x, distance2y, distance2z, distance2w);
+    let corner3 = surflet(gi3, distance3x, distance3y, distance3z, distance3w);
+    let corner4 = surflet(gi4, distance4x, distance4y, distance4z, distance4w);
+    let corner5 = surflet(gi5, distance5x, distance5y, distance5z, distance5w);
 
     // Sum up and scale the result to cover the range [-1,1]
     let noise =
-        27.0 * (corner0.value + corner1.value + corner2.value + corner3.value + corner4.value); // TODO: The scale factor is preliminary!
+        27.0 * (corner1.value + corner2.value + corner3.value + corner4.value + corner5.value); // TODO: The scale factor is preliminary!
 
     /*  A straight, unoptimised calculation would be like:
      *    dnoise_dx = -8.0 * t20 * t0 * x0 * dot(gx0, gy0, gz0, gw0, x0, y0, z0, w0) + t40 * gx0;
@@ -513,36 +516,36 @@ pub fn simplex_4d(point: [f64; 4], hasher: &PermutationTable) -> (f64, [f64; 4])
      *    dnoise_dz += -8.0 * t24 * t4 * z4 * dot(gx4, gy4, gz4, gw4, x4, y4, z4, w4) + t44 * gz4;
      *    dnoise_dw += -8.0 * t24 * t4 * w4 * dot(gx4, gy4, gz4, gw4, x4, y4, z4, w4) + t44 * gw4;
      */
-    let temp0 = corner0.t2 * corner0.t *
-        (corner0.gradx*distance1x + corner0.grady*distance1y + corner0.gradz*distance1z + corner0.gradw*distance1w);
+    let temp0 = corner1.t2 * corner1.t *
+        (corner1.gradx*distance1x + corner1.grady*distance1y + corner1.gradz*distance1z + corner1.gradw*distance1w);
     let mut dnoisex = distance1x * temp0;
     let mut dnoisey = distance1y * temp0;
     let mut dnoisez = distance1z * temp0;
     let mut dnoisew = distance1w * temp0;
 
-    let temp1 = corner1.t2 * corner1.t *
-        (corner1.gradx*distance1x + corner1.grady*distance1y + corner1.gradz*distance1z + corner1.gradw*distance1w);
+    let temp1 = corner2.t2 * corner2.t *
+        (corner2.gradx*distance1x + corner2.grady*distance1y + corner2.gradz*distance1z + corner2.gradw*distance1w);
     dnoisex += distance2x * temp1;
     dnoisey += distance2y * temp1;
     dnoisez += distance2z * temp1;
     dnoisew += distance2w * temp1;
 
-    let temp2 = corner2.t2 * corner2.t *
-        (corner2.gradx*distance1x + corner2.grady*distance1y + corner2.gradz*distance1z + corner2.gradw*distance1w);
+    let temp2 = corner3.t2 * corner3.t *
+        (corner3.gradx*distance1x + corner3.grady*distance1y + corner3.gradz*distance1z + corner3.gradw*distance1w);
     dnoisex += distance3x * temp2;
     dnoisey += distance3y * temp2;
     dnoisez += distance3z * temp2;
     dnoisew += distance3w * temp2;
 
-    let temp3 = corner3.t2 * corner3.t *
-        (corner3.gradx*distance1x + corner3.grady*distance1y + corner3.gradz*distance1z + corner3.gradw*distance1w);
+    let temp3 = corner4.t2 * corner4.t *
+        (corner4.gradx*distance1x + corner4.grady*distance1y + corner4.gradz*distance1z + corner4.gradw*distance1w);
     dnoisex += distance4x * temp3;
     dnoisey += distance4y * temp3;
     dnoisez += distance4z * temp3;
     dnoisew += distance4w * temp3;
 
-    let temp4 = corner4.t2 * corner4.t *
-        (corner4.gradx*distance1x + corner4.grady*distance1y + corner4.gradz*distance1z + corner4.gradw*distance1w);
+    let temp4 = corner5.t2 * corner5.t *
+        (corner5.gradx*distance1x + corner5.grady*distance1y + corner5.gradz*distance1z + corner5.gradw*distance1w);
     dnoisex += distance5x * temp4;
     dnoisey += distance5y * temp4;
     dnoisez += distance5z * temp4;
@@ -554,29 +557,29 @@ pub fn simplex_4d(point: [f64; 4], hasher: &PermutationTable) -> (f64, [f64; 4])
     dnoisew *= -8.0;
 
     dnoisex +=
-        corner0.gradx * corner0.t4 +
         corner1.gradx * corner1.t4 +
         corner2.gradx * corner2.t4 +
         corner3.gradx * corner3.t4 +
-        corner4.gradx * corner4.t4;
+        corner4.gradx * corner4.t4 +
+        corner5.gradx * corner5.t4;
     dnoisey +=
-        corner0.grady * corner0.t4 +
         corner1.grady * corner1.t4 +
         corner2.grady * corner2.t4 +
         corner3.grady * corner3.t4 +
-        corner4.grady * corner4.t4;
+        corner4.grady * corner4.t4 +
+        corner5.grady * corner5.t4;
     dnoisez +=
-        corner0.gradz * corner0.t4 +
         corner1.gradz * corner1.t4 +
         corner2.gradz * corner2.t4 +
         corner3.gradz * corner3.t4 +
-        corner4.gradz * corner4.t4;
+        corner4.gradz * corner4.t4 +
+        corner5.gradz * corner5.t4;
     dnoisew +=
-        corner0.gradw * corner0.t4 +
         corner1.gradw * corner1.t4 +
         corner2.gradw * corner2.t4 +
         corner3.gradw * corner3.t4 +
-        corner4.gradw * corner4.t4;
+        corner4.gradw * corner4.t4 +
+        corner5.gradw * corner5.t4;
 
     // Scale derivative to match the noise scaling
     dnoisex *= 28.0;
@@ -601,3 +604,63 @@ const SIMPLEX: [[u8; 4]; 64] = [
     [2, 0, 1, 3], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [3, 0, 1, 2], [3, 0, 2, 1], [0, 0, 0, 0], [3, 1, 2, 0],
     [2, 1, 0, 3], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [3, 1, 0, 2], [0, 0, 0, 0], [3, 2, 0, 1], [3, 2, 1, 0],
 ];
+
+#[inline(always)]
+pub fn simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
+    base_simplex_2d(point, |to_hash| hasher.hash_2d(to_hash)).0
+}
+
+#[inline(always)]
+pub fn simplex_2d_deriv(point: [f64; 2], hasher: &PermutationTable) -> (f64, [f64; 2]) {
+    base_simplex_2d(point, |to_hash| hasher.hash_2d(to_hash))
+}
+
+#[inline(always)]
+pub fn simplex_2d_variant(point: [f64; 2], variant: isize, hasher: &PermutationTable) -> f64 {
+    base_simplex_2d(point, |to_hash| hasher.hash_3d([to_hash[0], to_hash[1], variant])).0
+}
+
+#[inline(always)]
+pub fn simplex_2d_variant_deriv(point: [f64; 2], variant: isize, hasher: &PermutationTable) -> (f64, [f64; 2]) {
+    base_simplex_2d(point, |to_hash| hasher.hash_3d([to_hash[0], to_hash[1], variant]))
+}
+
+#[inline(always)]
+pub fn simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
+    base_simplex_3d(point, |to_hash| hasher.hash_3d(to_hash)).0
+}
+
+#[inline(always)]
+pub fn simplex_3d_deriv(point: [f64; 3], hasher: &PermutationTable) -> (f64, [f64; 3]) {
+    base_simplex_3d(point, |to_hash| hasher.hash_3d(to_hash))
+}
+
+#[inline(always)]
+pub fn simplex_3d_variant(point: [f64; 3], variant: isize, hasher: &PermutationTable) -> f64 {
+    base_simplex_3d(point, |to_hash| hasher.hash_4d([to_hash[0], to_hash[1], to_hash[2], variant])).0
+}
+
+#[inline(always)]
+pub fn simplex_3d_variant_deriv(point: [f64; 3], variant: isize, hasher: &PermutationTable) -> (f64, [f64; 3]) {
+    base_simplex_3d(point, |to_hash| hasher.hash_4d([to_hash[0], to_hash[1], to_hash[2], variant]))
+}
+
+#[inline(always)]
+pub fn simplex_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
+    base_simplex_4d(point, |to_hash| hasher.hash_4d(to_hash)).0
+}
+
+#[inline(always)]
+pub fn simplex_4d_deriv(point: [f64; 4], hasher: &PermutationTable) -> (f64, [f64; 4]) {
+    base_simplex_4d(point, |to_hash| hasher.hash_4d(to_hash))
+}
+
+#[inline(always)]
+pub fn simplex_4d_variant(point: [f64; 4], variant: isize, hasher: &PermutationTable) -> f64 {
+    base_simplex_4d(point, |to_hash| hasher.hash_5d([to_hash[0], to_hash[1], to_hash[2], to_hash[3], variant])).0
+}
+
+#[inline(always)]
+pub fn simplex_4d_variant_deriv(point: [f64; 4], variant: isize, hasher: &PermutationTable) -> (f64, [f64; 4]) {
+    base_simplex_4d(point, |to_hash| hasher.hash_5d([to_hash[0], to_hash[1], to_hash[2], to_hash[3], variant]))
+}

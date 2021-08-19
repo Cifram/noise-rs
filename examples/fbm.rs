@@ -8,6 +8,7 @@ use noise::{
         fbm_perlin_2d, fbm_perlin_3d, fbm_perlin_4d,
         fbm_perlin_surflet_2d, fbm_perlin_surflet_3d, fbm_perlin_surflet_4d,
         fbm_open_simplex_2d, fbm_open_simplex_3d, fbm_open_simplex_4d,
+        fbm_simplex_2d, fbm_simplex_3d, fbm_simplex_4d,
     },
     permutationtable::PermutationTable,
 };
@@ -70,4 +71,23 @@ fn main() {
         .set_y_bounds(-5.0, 5.0)
         .build()
         .write_to_file("fbm perlin surflet 4d.png");
+
+    PlaneMapBuilder::new_fn(|point, hasher| fbm_simplex_2d(point, 1.0, 2.0, 0.5, 6, hasher), &hasher)
+        .set_size(1024, 1024)
+        .set_x_bounds(-5.0, 5.0)
+        .set_y_bounds(-5.0, 5.0)
+        .build()
+        .write_to_file("fbm simplex 2d.png");
+    PlaneMapBuilder::new_fn(|point, hasher| fbm_simplex_3d(point, 1.0, 2.0, 0.5, 6, hasher), &hasher)
+        .set_size(1024, 1024)
+        .set_x_bounds(-5.0, 5.0)
+        .set_y_bounds(-5.0, 5.0)
+        .build()
+        .write_to_file("fbm simplex 3d.png");
+    PlaneMapBuilder::new_fn(|point, hasher| fbm_simplex_4d(point, 1.0, 2.0, 0.5, 6, hasher), &hasher)
+        .set_size(1024, 1024)
+        .set_x_bounds(-5.0, 5.0)
+        .set_y_bounds(-5.0, 5.0)
+        .build()
+        .write_to_file("fbm simplex 4d.png");
 }
