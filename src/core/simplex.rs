@@ -1,37 +1,7 @@
 use crate::{
     gradient,
-    math::vectors::{Vector, Vector3},
     permutationtable::PermutationTable,
 };
-use num_traits::{Float, NumCast};
-
-// Skew Value
-//
-//     sqrt(n + 1) - 1
-// F = ---------------
-//            n
-fn skew_factor<F>(n: usize) -> F
-where
-    F: Float,
-{
-    let n: F = NumCast::from(n).unwrap();
-
-    ((n + F::one()).sqrt() - F::one()) / n
-}
-
-//  Unskew Value
-//
-//     1 - 1 / sqrt(n + 1)
-// G = -------------------
-//             n
-fn unskew_factor<F>(n: usize) -> F
-where
-    F: Float,
-{
-    let n: F = NumCast::from(n).unwrap();
-
-    (F::one() - (F::one() / (n + F::one()).sqrt())) / n
-}
 
 /// The simplex noise code was adapted from code by Stefan Gustavson,
 /// http://staffwww.itn.liu.se/~stegu/aqsis/aqsis-newnoise/sdnoise1234.c
@@ -186,49 +156,60 @@ pub fn simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> (f64, [f64; 2])
 
 #[inline(always)]
 pub fn simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> (f64, [f64; 3]) {
-    let f3: f64 = skew_factor(3);
-    let g3: f64 = unskew_factor(3);
+    const SKEW_FACTOR_3D: f64 = 0.333333333;
+    const UNSKEW_FACTOR_3D: f64 = 0.166666667;
 
-    let point = Vector3::from(point);
+    let [x, y, z] = point;
 
     /* Skew the input space to determine which simplex cell we're in */
-    // let skew = (x + y + z) * f3; /* Very nice and simple skew factor for 3D */
-    let skew = point.sum() * f3;
-    let skewed = point + Vector3::broadcast(skew);
-    let cell: Vector3<isize> = skewed.floor().numcast().unwrap();
+    // let skew = (x + y + z) * SKEW_FACTOR_3D; /* Very nice and simple skew factor for 3D */
+    let skew = (x + y + z) * SKEW_FACTOR_3D;
+    let skewedx = x + skew;
+    let skewedy = y + skew;
+    let skewedz = z + skew;
+    let floorx = skewedx.floor();
+    let floory = skewedy.floor();
+    let floorz = skewedz.floor();
+    let cellx = floorx as isize;
+    let celly = floory as isize;
+    let cellz = floorz as isize;
 
-    // let unskew = (cell_x + cell_y + cell_z) as f64 * g3;
-    let unskew = cell.sum() as f64 * g3;
+    // let unskew = (cell_x + cell_y + cell_z) as f64 * UNSKEW_FACTOR_3D;
+    let unskew = (floorx + floory + floorz) * UNSKEW_FACTOR_3D;
     /* Unskew the cell origin back to (x,y,z) space */
-    let unskewed = cell.numcast().unwrap() - Vector3::broadcast(unskew);
+    let unskewedx = floorx - unskew;
+    let unskewedy = floory - unskew;
+    let unskewedz = floorz - unskew;
     /* The x,y,z distances from the cell origin */
-    let distance = point - unskewed;
+    let distance1x = x - unskewedx;
+    let distance1y = y - unskewedy;
+    let distance1z = z - unskewedz;
 
     /* For the 3D case, the simplex shape is a slightly irregular tetrahedron.
      * Determine which simplex we are in. */
     /* TODO: This code would benefit from a backport from the GLSL version! */
-    let (order1, order2): (Vector3<isize>, Vector3<isize>) = if distance.x >= distance.y {
-        if distance.y >= distance.z {
+    let (order1x, order1y, order1z, order2x, order2y, order2z) = if distance1x >= distance1y {
+        if distance1y >= distance1z {
             /* X Y Z order */
-            (Vector3::new(1, 0, 0), Vector3::new(1, 1, 0))
-        } else if distance.x >= distance.z {
+            (1, 0, 0, 1, 1, 0)
+        } else if distance1x >= distance1z {
             /* X Z Y order */
-            (Vector3::new(1, 0, 0), Vector3::new(1, 0, 1))
+            (1, 0, 0, 1, 0, 1)
         } else {
             /* Z X Y order */
-            (Vector3::new(0, 0, 1), Vector3::new(1, 0, 1))
+            (0, 0, 1, 1, 0, 1)
         }
     } else {
         // x0<y0
-        if distance.y < distance.z {
+        if distance1y < distance1z {
             /* Z Y X order */
-            (Vector3::new(0, 0, 1), Vector3::new(0, 1, 1))
-        } else if distance.x < distance.z {
+            (0, 0, 1, 0, 1, 1)
+        } else if distance1x < distance1z {
             /* Y Z X order */
-            (Vector3::new(0, 1, 0), Vector3::new(0, 1, 1))
+            (0, 1, 0, 0, 1, 1)
         } else {
             /* Y X Z order */
-            (Vector3::new(0, 1, 0), Vector3::new(1, 1, 0))
+            (0, 1, 0, 1, 1, 0)
         }
     };
 
@@ -237,62 +218,64 @@ pub fn simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> (f64, [f64; 3])
      * a step of (0,0,1) in (i,j,k) means a step of (-c,-c,1-c) in (x,y,z), where
      * c = 1/6.   */
 
-    let offset1 = distance - order1.numcast().unwrap() + Vector3::broadcast(g3);
-    let offset2 = distance - order2.numcast().unwrap() + Vector3::broadcast(2.0 * g3);
-    let offset3 = distance - Vector3::one() + Vector3::broadcast(3.0 * g3);
+    let distance2x = distance1x - order1x as f64 + UNSKEW_FACTOR_3D;
+    let distance2y = distance1y - order1y as f64 + UNSKEW_FACTOR_3D;
+    let distance2z = distance1z - order1z as f64 + UNSKEW_FACTOR_3D;
+    let distance3x = distance1x - order2x as f64 + 2.0 * UNSKEW_FACTOR_3D;
+    let distance3y = distance1y - order2y as f64 + 2.0 * UNSKEW_FACTOR_3D;
+    let distance3z = distance1z - order2z as f64 + 2.0 * UNSKEW_FACTOR_3D;
+    let distance4x = distance1x - 1.0 + 3.0 * UNSKEW_FACTOR_3D;
+    let distance4y = distance1y - 1.0 + 3.0 * UNSKEW_FACTOR_3D;
+    let distance4z = distance1z - 1.0 + 3.0 * UNSKEW_FACTOR_3D;
 
     // Calculate gradient indexes for each corner
-    let gi0 = hasher.hash_3d(cell.into_array());
-    let gi1 = hasher.hash_3d((cell + order1).into_array());
-    let gi2 = hasher.hash_3d((cell + order2).into_array());
-    let gi3 = hasher.hash_3d((cell + Vector3::one()).into_array());
+    let gi0 = hasher.hash_3d([cellx, celly, cellz]);
+    let gi1 = hasher.hash_3d([cellx + order1x, celly + order1y, cellz + order1z]);
+    let gi2 = hasher.hash_3d([cellx + order2x, celly + order2y, cellz + order2z]);
+    let gi3 = hasher.hash_3d([cellx + 1, celly + 1, cellz + 1]);
 
     struct SurfletComponents {
         value: f64,
         t: f64,
         t2: f64,
         t4: f64,
-        gradient: Vector3<f64>,
+        gradx: f64,
+        grady: f64,
+        gradz: f64,
     }
 
-    impl SurfletComponents {
-        fn zeros() -> Self {
-            Self {
-                value: 0.0,
-                t: 0.0,
-                t2: 0.0,
-                t4: 0.0,
-                gradient: Vector3::zero(),
-            }
-        }
-    }
-
-    fn surflet(gradient_index: usize, point: Vector3<f64>) -> SurfletComponents {
-        let t = 0.5 - point.magnitude_squared();
+    fn surflet(grad_index: usize, x: f64, y: f64, z: f64) -> SurfletComponents {
+        let t = 0.5 - (x*x + y*y + z*z);
 
         if t > 0.0 {
-            let gradient = Vector3::from(gradient::grad3(gradient_index));
+            let [gradx, grady, gradz] = gradient::grad3(grad_index);
             let t2 = t * t;
             let t4 = t2 * t2;
 
             SurfletComponents {
-                value: t4 * gradient.dot(point),
-                t,
-                t2,
-                t4,
-                gradient,
+                value: t4 * (gradx*x + grady*y + gradz*z),
+                t, t2, t4,
+                gradx, grady, gradz
             }
         } else {
             // No influence
-            SurfletComponents::zeros()
+            SurfletComponents {
+                value: 0.0,
+                t: 0.0,
+                t2: 0.0,
+                t4: 0.0,
+                gradx: 0.0,
+                grady: 0.0,
+                gradz: 0.0,
+            }
         }
     }
 
     /* Calculate the contribution from the four corners */
-    let corner0 = surflet(gi0, distance);
-    let corner1 = surflet(gi1, offset1);
-    let corner2 = surflet(gi2, offset2);
-    let corner3 = surflet(gi3, offset3);
+    let corner0 = surflet(gi0, distance1x, distance1y, distance1z);
+    let corner1 = surflet(gi1, distance2x, distance2y, distance2z);
+    let corner2 = surflet(gi2, distance3x, distance3y, distance3z);
+    let corner3 = surflet(gi3, distance4x, distance4y, distance4z);
 
     /*  Add contributions from each corner to get the final noise value.
      * The result is scaled to return values in the range [-1,1] */
@@ -312,29 +295,52 @@ pub fn simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> (f64, [f64; 3])
      *    dnoise_dy += -8.0 * t23 * t3 * y3 * dot(gx3, gy3, gz3, x3, y3, z3) + t43 * gy3;
      *    dnoise_dz += -8.0 * t23 * t3 * z3 * dot(gx3, gy3, gz3, x3, y3, z3) + t43 * gz3;
      */
-    let temp0 = corner0.t2 * corner0.t * corner0.gradient.dot(distance);
-    let mut dnoise = distance * temp0;
+    let temp0 = corner0.t2 * corner0.t * (corner0.gradx*distance1x + corner0.grady*distance1y + corner0.gradz*distance1z);
+    let mut dnoisex = distance1x * temp0;
+    let mut dnoisey = distance1y * temp0;
+    let mut dnoisez = distance1z * temp0;
 
-    let temp1 = corner1.t2 * corner1.t * corner1.gradient.dot(offset1);
-    dnoise += offset1 * temp1;
+    let temp1 = corner1.t2 * corner1.t * (corner1.gradx*distance2x + corner1.grady*distance2y + corner1.gradz*distance2z);
+    dnoisex += distance2x * temp1;
+    dnoisey += distance2y * temp1;
+    dnoisez += distance2z * temp1;
 
-    let temp2 = corner2.t2 * corner2.t * corner2.gradient.dot(offset2);
-    dnoise += offset2 * temp2;
+    let temp2 = corner2.t2 * corner2.t * (corner2.gradx*distance3x + corner2.grady*distance3y + corner2.gradz*distance3z);
+    dnoisex += distance3x * temp2;
+    dnoisey += distance3y * temp2;
+    dnoisez += distance3z * temp2;
 
-    let temp3 = corner3.t2 * corner3.t * corner3.gradient.dot(offset3);
-    dnoise += offset3 * temp3;
+    let temp3 = corner3.t2 * corner3.t * (corner3.gradx*distance4x + corner3.grady*distance4y + corner3.gradz*distance4z);
+    dnoisex += distance4x * temp3;
+    dnoisey += distance4y * temp3;
+    dnoisez += distance4z * temp3;
 
-    dnoise *= -8.0;
+    dnoisex *= -8.0;
+    dnoisey *= -8.0;
+    dnoisez *= -8.0;
 
-    dnoise += corner0.gradient * corner0.t4
-        + corner1.gradient * corner1.t4
-        + corner2.gradient * corner2.t4
-        + corner3.gradient * corner3.t4;
+    dnoisex +=
+        corner0.gradx * corner0.t4 +
+        corner1.gradx * corner1.t4 +
+        corner2.gradx * corner2.t4 +
+        corner3.gradx * corner3.t4;
+    dnoisey +=
+        corner0.grady * corner0.t4 +
+        corner1.grady * corner1.t4 +
+        corner2.grady * corner2.t4 +
+        corner3.grady * corner3.t4;
+    dnoisez +=
+        corner0.gradz * corner0.t4 +
+        corner1.gradz * corner1.t4 +
+        corner2.gradz * corner2.t4 +
+        corner3.gradz * corner3.t4;
 
     /* Scale derivative to match the noise scaling */
-    dnoise *= 28.0;
+    dnoisex *= 28.0;
+    dnoisey *= 28.0;
+    dnoisez *= 28.0;
 
-    (noise, dnoise.into())
+    (noise, [dnoisex, dnoisey, dnoisez])
 }
 
 #[inline(always)]
