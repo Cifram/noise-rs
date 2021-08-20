@@ -65,7 +65,23 @@ name = "worley_4d"
 harness = false
 
 [[example]]
+name = "checkerboard"
+required-features = ["image"]
+
+[[example]]
+name = "complexplanet"
+required-features = ["image"]
+
+[[example]]
+name = "cylinders"
+required-features = ["image"]
+
+[[example]]
 name = "fbm"
+required-features = ["image"]
+
+[[example]]
+name = "open_simplex"
 required-features = ["image"]
 
 [[example]]
@@ -77,7 +93,7 @@ name = "perlin_surflet"
 required-features = ["image"]
 
 [[example]]
-name = "open_simplex"
+name = "simplex"
 required-features = ["image"]
 
 [[example]]
@@ -85,23 +101,7 @@ name = "super_simplex"
 required-features = ["image"]
 
 [[example]]
-name = "value"
-required-features = ["image"]
-
-[[example]]
-name = "checkerboard"
-required-features = ["image"]
-
-[[example]]
-name = "cylinders"
-required-features = ["image"]
-
-[[example]]
-name = "worley"
-required-features = ["image"]
-
-[[example]]
-name = "texturewood"
+name = "texturegranite"
 required-features = ["image"]
 
 [[example]]
@@ -109,17 +109,21 @@ name = "texturejade"
 required-features = ["image"]
 
 [[example]]
-name = "texturegranite"
-required-features = ["image"]
-
-[[example]]
 name = "textureslime"
 required-features = ["image"]
 
 [[example]]
-name = "complexplanet"
+name = "texturewood"
 required-features = ["image"]
 
 [[example]]
-name = "simplex"
+name = "turbulance"
+required-features = ["image"]
+
+[[example]]
+name = "value"
+required-features = ["image"]
+
+[[example]]
+name = "worley"
 required-features = ["image"]

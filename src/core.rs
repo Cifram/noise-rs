@@ -1,4 +1,5 @@
 pub mod checkerboard;
+pub mod displace;
 pub mod fbm;
 pub mod open_simplex;
 pub mod perlin;
