@@ -183,7 +183,7 @@ where
                 let y = distancey - $y as f64;
                 let z = distancez - $z as f64;
                 let w = distancew - $w as f64;
-                match hasher([cornerx + $x, cornery + $y, cornerz + $z, cornerw - $w]) & 0b11111 {
+                match hasher([cornerx + $x, cornery + $y, cornerz + $z, cornerw + $w]) & 0b11111 {
                     0  | 28 =>  x + y + z    , // ( 1,  1,  1,  0)
                     1       => -x + y + z    , // (-1,  1,  1,  0)
                     2       =>  x - y + z    , // ( 1, -1,  1,  0)
