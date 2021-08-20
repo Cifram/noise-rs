@@ -1,5 +1,8 @@
 use crate::{
-    math::s_curve::quintic::Quintic,
+    math::{
+        s_curve::quintic::Quintic,
+        interpolate::linear,
+    },
     permutationtable::PermutationTable,
 };
 use core::f64;
@@ -48,17 +51,12 @@ where
     let curvex = distancex.map_quintic();
     let curvey = distancey.map_quintic();
 
-    let k0 = g00;
-    let k1 = g10 - g00;
-    let k2 = g01 - g00;
-    let k3 = g00 + g11 - g10 - g01;
-    let unscaled_result = k0 + k1 * curvex + k2 * curvey + k3 * curvex * curvey;
-    let scaled_result = unscaled_result * SCALE_FACTOR;
+    let result = linear(linear(g00, g01, curvey), linear(g10, g11, curvey), curvex) * SCALE_FACTOR;
 
     // At this point, we should be really damn close to the (-1, 1) range, but some float errors
     // could have accumulated, so let's just clamp the results to (-1, 1) to cut off any
     // outliers and return it.
-    scaled_result.clamp(-1.0, 1.0)
+    result.clamp(-1.0, 1.0)
 }
 
 #[inline(always)]
@@ -125,31 +123,24 @@ where
     let curvey = distancey.map_quintic();
     let curvez = distancez.map_quintic();
 
-    let k0 = g000;
-    let k1 = g100 - g000;
-    let k2 = g010 - g000;
-    let k3 = g001 - g000;
-    let k4 = g000 + g110 - g100 - g010;
-    let k5 = g000 + g101 - g100 - g001;
-    let k6 = g000 + g011 - g010 - g001;
-    let k7 = g100 + g010 + g001 + g111 - g000 - g110 - g101 - g011;
-
-    let unscaled_result =
-        k0 +
-        k1 * curvex +
-        k2 * curvey +
-        k3 * curvez +
-        k4 * curvex * curvey +
-        k5 * curvex * curvez +
-        k6 * curvey * curvez +
-        k7 * curvex * curvey * curvez;
-
-    let scaled_result = unscaled_result * SCALE_FACTOR;
+    let result = linear(
+        linear(
+            linear(g000, g001, curvez),
+            linear(g010, g011, curvez),
+            curvey
+        ),
+        linear(
+            linear(g100, g101, curvez),
+            linear(g110, g111, curvez),
+            curvey
+        ),
+        curvex
+    ) * SCALE_FACTOR;
 
     // At this point, we should be really damn close to the (-1, 1) range, but some float errors
     // could have accumulated, so let's just clamp the results to (-1, 1) to cut off any
     // outliers and return it.
-    scaled_result.clamp(-1.0, 1.0)
+    result.clamp(-1.0, 1.0)
 }
 
 #[inline(always)]
@@ -240,46 +231,41 @@ where
     let curvez = distancez.map_quintic();
     let curvew = distancew.map_quintic();
 
-    let k0 = g0000;
-    let k1 = g1000 - g0000;
-    let k2 = g0100 - g0000;
-    let k3 = g0010 - g0000;
-    let k4 = g0001 - g0000;
-    let k5 = g0000 + g1100 - g1000 - g0100;
-    let k6 = g0000 + g1010 - g1000 - g0010;
-    let k7 = g0000 + g1001 - g1000 - g0001;
-    let k8 = g0000 + g0110 - g0100 - g0010;
-    let k9 = g0000 + g0101 - g0100 - g0001;
-    let k10 = g0000 + g0011 - g0010 - g0001;
-    let k11 = g1110 + g1000 + g0100 + g0010 - g0000 - g0111 - g1011 - g1101;
-    let k12 = g1101 + g1000 + g0100 + g0001 - g0000 - g0111 - g1011 - g1110;
-    let k13 = g1011 + g1000 + g0010 + g0001 - g0000 - g0111 - g1101 - g1110;
-    let k14 = g0111 + g0100 + g0010 + g0001 - g0000 - g1011 - g1101 - g1110;
-    let k15 = g1111 + g1000 + g0100 + g0010 + g0001 - g0000 - g0111 - g1011 - g1101 - g1110;
-
-    let unscaled_result = k0
-        + k1 * curvex
-        + k2 * curvey
-        + k3 * curvez
-        + k4 * curvew
-        + k5 * curvex * curvey
-        + k6 * curvex * curvez
-        + k7 * curvex * curvew
-        + k8 * curvey * curvez
-        + k9 * curvey * curvew
-        + k10 * curvez * curvew
-        + k11 * curvex * curvey * curvez
-        + k12 * curvex * curvey * curvew
-        + k13 * curvex * curvez * curvew
-        + k14 * curvey * curvez * curvew
-        + k15 * curvex * curvey * curvez * curvew;
-
-    let scaled_result = unscaled_result * SCALE_FACTOR;
+    let result =
+        linear(
+            linear(
+                linear(
+                    linear(g0000, g0001, curvew),
+                    linear(g0010, g0011, curvew),
+                    curvez
+                ),
+                linear(
+                    linear(g0100, g0101, curvew),
+                    linear(g0110, g0111, curvew),
+                    curvez
+                ),
+                curvey
+            ),
+            linear(
+                linear(
+                    linear(g1000, g1001, curvew),
+                    linear(g1010, g1011, curvew),
+                    curvez
+                ),
+                linear(
+                    linear(g1100, g1101, curvew),
+                    linear(g1110, g1111, curvew),
+                    curvez
+                ),
+                curvey
+            ),
+            curvex
+        ) * SCALE_FACTOR;
 
     // At this point, we should be really damn close to the (-1, 1) range, but some float errors
     // could have accumulated, so let's just clamp the results to (-1, 1) to cut off any
     // outliers and return it.
-    scaled_result.clamp(-1.0, 1.0)
+    result.clamp(-1.0, 1.0)
 }
 
 #[inline(always)]
