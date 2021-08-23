@@ -3,9 +3,7 @@ use crate::{
     permutationtable::PermutationTable,
 };
 
-pub fn value_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
-    let point = Vector2::from(point);
-
+pub fn value_2d(point: Vector2<f64>, hasher: &PermutationTable) -> f64 {
     let floored = point.floor();
     let corner = floored.numcast::<isize>().unwrap();
     let weight = (point - floored).map_quintic();
@@ -30,9 +28,7 @@ pub fn value_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
     d * 2.0 - 1.0
 }
 
-pub fn value_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
-    let point = Vector3::from(point);
-
+pub fn value_3d(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
     let floored = point.floor();
     let corner = floored.numcast::<isize>().unwrap();
     let weight = (point - floored).map_quintic();
@@ -65,9 +61,7 @@ pub fn value_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
     d * 2.0 - 1.0
 }
 
-pub fn value_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
-    let point = Vector4::from(point);
-
+pub fn value_4d(point: Vector4<f64>, hasher: &PermutationTable) -> f64 {
     let floored = point.floor();
     let corner = floored.numcast::<isize>().unwrap();
     let weight = (point - floored).map_quintic();
