@@ -10,19 +10,19 @@ use noise::{
 
 fn main() {
     let hasher = PermutationTable::new(0);
-    PlaneMapBuilder::new_fn(|point, hasher| simplex_2d(point, hasher), &hasher)
+    PlaneMapBuilder::new_fn(|point| simplex_2d(point, &hasher))
         .set_size(1024, 1024)
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)
         .build()
         .write_to_file("simplex 2d.png");
-    PlaneMapBuilder::new_fn(|point, hasher| simplex_3d(point, hasher), &hasher)
+    PlaneMapBuilder::new_fn(|point| simplex_3d(point, &hasher))
         .set_size(1024, 1024)
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)
         .build()
         .write_to_file("simplex 3d.png");
-    PlaneMapBuilder::new_fn(|point, hasher| simplex_4d(point, hasher), &hasher)
+    PlaneMapBuilder::new_fn(|point| simplex_4d(point, &hasher))
         .set_size(1024, 1024)
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)

@@ -1,19 +1,18 @@
-use crate::{math::interpolate, noise_fns::NoiseFn, permutationtable::PermutationTable, utils::noise_map::NoiseMap};
+use crate::{math::interpolate, noise_fns::NoiseFn, utils::noise_map::NoiseMap};
 
 pub struct NoiseFnWrapper<F, const DIM: usize>
 where
-    F: Fn([f64; DIM], &PermutationTable) -> f64,
+    F: Fn([f64; DIM]) -> f64,
 {
-    hasher: PermutationTable,
     func: F,
 }
 
 impl<F, const DIM: usize> NoiseFn<f64, DIM> for NoiseFnWrapper<F, DIM>
 where
-    F: Fn([f64; DIM], &PermutationTable) -> f64,
+    F: Fn([f64; DIM]) -> f64,
 {
     fn get(&self, point: [f64; DIM]) -> f64 {
-        (self.func)(point, &self.hasher)
+        (self.func)(point)
     }
 }
 
@@ -171,16 +170,15 @@ where
 
 impl<F, const DIM: usize> PlaneMapBuilder<NoiseFnWrapper<F, DIM>, DIM>
 where
-    F: Fn([f64; DIM], &PermutationTable) -> f64,
+    F: Fn([f64; DIM]) -> f64,
 {
-    pub fn new_fn(func: F, hasher: &PermutationTable) -> Self {
+    pub fn new_fn(func: F) -> Self {
         PlaneMapBuilder {
             is_seamless: false,
             x_bounds: (-1.0, 1.0),
             y_bounds: (-1.0, 1.0),
             size: (100, 100),
             source_module: NoiseFnWrapper {
-                hasher: hasher.clone(),
                 func,
             },
         }

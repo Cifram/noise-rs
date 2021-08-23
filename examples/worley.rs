@@ -6,11 +6,11 @@ use noise::{
     utils::*,
 };
 
-fn output<F, const DIM: usize>(closure: F, hasher: &PermutationTable, name: &str)
+fn output<F, const DIM: usize>(closure: F, name: &str)
 where
-    F: Fn([f64; DIM], &PermutationTable) -> f64,
+    F: Fn([f64; DIM]) -> f64,
 {
-    PlaneMapBuilder::new_fn(closure, &hasher)
+    PlaneMapBuilder::new_fn(closure)
         .set_size(1024, 1024)
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)
@@ -23,8 +23,8 @@ where
     F: Fn(&[f64], &[f64]) -> f64,
 {
     let hasher = PermutationTable::new(0);
-    let closure = |point: [f64; 2], hasher: &PermutationTable| worley_2d(hasher, distance_function, return_type, point);
-    output(closure, &hasher, name);
+    let closure = |point| worley_2d(&hasher, distance_function, return_type, point);
+    output(closure, name);
 }
 
 fn output_3d<F>(distance_function: &F, return_type: ReturnType, name: &str)
@@ -32,8 +32,8 @@ where
     F: Fn(&[f64], &[f64]) -> f64,
 {
     let hasher = PermutationTable::new(0);
-    let closure = |point: [f64; 3], hasher: &PermutationTable| worley_3d(hasher, distance_function, return_type, point);
-    output(closure, &hasher, name);
+    let closure = |point| worley_3d(&hasher, distance_function, return_type, point);
+    output(closure, name);
 }
 
 fn output_4d<F>(distance_function: &F, return_type: ReturnType, name: &str)
@@ -41,8 +41,8 @@ where
     F: Fn(&[f64], &[f64]) -> f64,
 {
     let hasher = PermutationTable::new(0);
-    let closure = |point: [f64; 4], hasher: &PermutationTable| worley_4d(hasher, distance_function, return_type, point);
-    output(closure, &hasher, name);
+    let closure = |point| worley_4d(&hasher, distance_function, return_type, point);
+    output(closure, name);
 }
 
 fn main() {

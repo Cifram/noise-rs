@@ -10,13 +10,13 @@ use noise::{
 
 fn main() {
     let hasher = PermutationTable::new(0);
-    PlaneMapBuilder::new_fn(super_simplex_2d, &hasher)
+    PlaneMapBuilder::new_fn(|point| super_simplex_2d(point, &hasher))
         .set_size(1024, 1024)
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)
         .build()
         .write_to_file("super simplex 2d.png");
-    PlaneMapBuilder::new_fn(super_simplex_3d, &hasher)
+    PlaneMapBuilder::new_fn(|point| super_simplex_3d(point, &hasher))
         .set_size(1024, 1024)
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)
