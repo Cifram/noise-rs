@@ -16,7 +16,7 @@ pub fn spheres_2d(point: [f64; 2], frequency: f64) -> f64 {
 pub fn spheres_3d(point: [f64; 3], frequency: f64) -> f64 {
     let x = point[0] * frequency;
     let y = point[1] * frequency;
-    let z = point[1] * frequency;
+    let z = point[2] * frequency;
 
     let dist_from_center = (x*x + y*y + z*z).sqrt();
 

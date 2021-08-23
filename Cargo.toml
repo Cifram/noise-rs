@@ -73,10 +73,6 @@ name = "complexplanet"
 required-features = ["image"]
 
 [[example]]
-name = "cylinders"
-required-features = ["image"]
-
-[[example]]
 name = "fbm"
 required-features = ["image"]
 
@@ -94,6 +90,10 @@ required-features = ["image"]
 
 [[example]]
 name = "simplex"
+required-features = ["image"]
+
+[[example]]
+name = "spheres"
 required-features = ["image"]
 
 [[example]]
