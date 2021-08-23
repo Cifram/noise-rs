@@ -1,5 +1,6 @@
 use crate::{
     gradient,
+    math::vectors::{Vector2, Vector3, Vector4},
     permutationtable::PermutationTable,
 };
 
@@ -27,93 +28,84 @@ use crate::{
 ///  */
 
 #[inline(always)]
-fn base_simplex_2d<F>(point: [f64; 2], hasher: F) -> (f64, [f64; 2])
+fn base_simplex_2d<F>(point: Vector2<f64>, hasher: F) -> (f64, Vector2<f64>)
 where
     F: Fn([isize; 2]) -> usize
 {
     const SKEW_FACTOR_2D: f64 = 0.366025403;
     const UNSKEW_FACTOR_2D: f64 = 0.211324865;
 
-    let [x, y] = point;
-
     /* Skew the input space to determine which simplex cell we're in */
-    let skew = (x + y) * SKEW_FACTOR_2D; /* Hairy factor for 2D */
-    let skewedx = x + skew;
-    let skewedy = y + skew;
-    let floorx = skewedx.floor();
-    let floory = skewedy.floor();
-    let cellx = floorx as isize;
-    let celly = floory as isize;
+    let skew = point.sum() * SKEW_FACTOR_2D;
+    let skewed = point + skew;
+    let floor = skewed.floor();
+    let cell = floor.numcast().unwrap();
 
-    let unskew: f64 = (floorx + floory) as f64 * UNSKEW_FACTOR_2D;
+    let unskew: f64 = floor.sum() as f64 * UNSKEW_FACTOR_2D;
     // Unskew the cell origin back to (x,y) space
-    let unskewedx = floorx - unskew;
-    let unskewedy = floory - unskew;
+    let unskewed = floor - unskew;
     // The x,y distances from the cell origin
-    let distance1x = x - unskewedx;
-    let distance1y = y - unskewedy;
+    let distance1 = point - unskewed;
 
     // For the 2D case, the simplex shape is an equilateral triangle.
     // Determine which simplex we are in.
-    let (offsetx, offsety) = if distance1x > distance1y {
+    let offset = if distance1.x > distance1.y {
         /* Offsets for second (middle) corner of simplex in (i,j) coords */
         // lower triangle, XY order: (0,0)->(1,0)->(1,1)
-        (1.0, 0.0)
+        Vector2::new(1.0, 0.0)
     } else {
         // upper triangle, YX order: (0,0)->(0,1)->(1,1)
-        (0.0, 1.0)
+        Vector2::new(0.0, 1.0)
     };
 
     /* A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
      * a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
      * c = (3-sqrt(3))/6   */
     // Offsets for middle corner in (x,y) unskewed coords */
-    let distance2x = distance1x - offsetx + UNSKEW_FACTOR_2D;
-    let distance2y = distance1y - offsety + UNSKEW_FACTOR_2D;
+    let distance2 = distance1 - offset + UNSKEW_FACTOR_2D;
     /* Offsets for last corner in (x,y) unskewed coords */
-    let distance3x = distance1x - 1.0 + 2.0 * UNSKEW_FACTOR_2D;
-    let distance3y = distance1y - 1.0 + 2.0 * UNSKEW_FACTOR_2D;
+    let distance3 = distance1 - 1.0 + 2.0 * UNSKEW_FACTOR_2D;
 
     struct SurfletComponents {
         value: f64,
         t: f64,
         t2: f64,
         t4: f64,
-        gradx: f64,
-        grady: f64,
+        grad: Vector2<f64>,
     }
 
     #[inline(always)]
-    fn surflet(grad_index: usize, x: f64, y: f64) -> SurfletComponents {
-        let t = 0.5 - (x*x + y*y);
+    fn surflet(grad_index: usize, point: Vector2<f64>) -> SurfletComponents {
+        let t = 0.5 - point.magnitude_squared();
 
         if t > 0.0 {
-            let [gradx, grady] = gradient::grad2(grad_index);
+            let grad = gradient::grad2(grad_index).into();
             let t2 = t * t;
             let t4 = t2 * t2;
 
             SurfletComponents {
-                value: t4 * (gradx * x + grady * y),
+                value: t4 * point.dot(grad),
                 t, t2, t4,
-                gradx, grady,
+                grad,
             }
         } else {
             // No influence
             SurfletComponents {
                 value: 0.0,
                 t: 0.0, t2: 0.0, t4: 0.0,
-                gradx: 0.0, grady: 0.0
+                grad: Vector2::zero(),
             }
         }
     }
 
     // Calculate gradient indexes for each corner
-    let grad_index1 = hasher([cellx, celly]);
-    let grad_index2 = hasher([cellx + offsetx as isize, celly + offsety as isize]);
-    let grad_index3 = hasher([cellx + 1, celly + 1]);
-    let corner1 = surflet(grad_index1, distance1x, distance1y);
-    let corner2 = surflet(grad_index2, distance2x, distance2y);
-    let corner3 = surflet(grad_index3, distance3x, distance3y);
+    let grad_index1 = hasher(cell.into());
+    let grad_index2 = hasher((cell + offset.numcast().unwrap()).into());
+    let grad_index3 = hasher((cell + 1).into());
+    // Calculate the contribution from the three corners
+    let corner1 = surflet(grad_index1, distance1);
+    let corner2 = surflet(grad_index2, distance2);
+    let corner3 = surflet(grad_index3, distance3);
 
     /* Add contributions from each corner to get the final noise value.
      * The result is scaled to return values in the interval [-1, 1]. */
@@ -127,39 +119,38 @@ where
      *    dnoise_dx += -8.0 * t22 * t2 * x2 * ( gx2 * x2 + gy2 * y2 ) + t42 * gx2;
      *    dnoise_dy += -8.0 * t22 * t2 * y2 * ( gx2 * x2 + gy2 * y2 ) + t42 * gy2;
      */
-    let temp0 = corner1.t2 * corner1.t * (corner1.gradx*distance1x + corner1.grady*distance1y);
-    let mut dnoisex = distance1x + temp0;
-    let mut dnoisey = distance1y + temp0;
+    let temp1 = corner1.t2 * corner1.t * corner1.grad.dot(distance1);
+    let mut dnoise = distance1 + temp1;
 
-    let temp1 = corner2.t2 * corner2.t * (corner2.gradx*distance2x + corner2.grady*distance2y);
-    dnoisex += distance2x * temp1;
-    dnoisey += distance2y * temp1;
+    let temp2 = corner2.t2 * corner2.t * corner2.grad.dot(distance2);
+    dnoise += distance2 * temp2;
 
-    let temp2 = corner3.t2 * corner3.t * (corner3.gradx*distance3x + corner3.grady*distance3y);
-    dnoisex += distance2x * temp2;
-    dnoisey += distance2y * temp2;
+    let temp3 = corner3.t2 * corner3.t * corner3.grad.dot(distance3);
+    dnoise += distance2 * temp3;
 
-    dnoisex *= -8.0;
-    dnoisey *= -8.0;
+    dnoise *= -8.0;
 
-    dnoisex += corner1.gradx * corner1.t4 + corner2.gradx * corner2.t4 + corner3.gradx * corner3.t4;
-    dnoisey += corner1.grady * corner1.t4 + corner2.grady * corner2.t4 + corner3.grady * corner3.t4;
+    dnoise += corner1.grad * corner1.t4;
+    dnoise += corner2.grad * corner2.t4;
+    dnoise += corner3.grad * corner3.t4;
 
-    dnoisex *= 40.0; /* Scale derivative to match the noise scaling */
-    dnoisey *= 40.0;
+    dnoise *= 40.0; /* Scale derivative to match the noise scaling */
 
-    (noise, [dnoisex, dnoisey])
+    (noise, dnoise.into())
 }
 
 #[inline(always)]
-fn base_simplex_3d<F>(point: [f64; 3], hasher: F) -> (f64, [f64; 3])
+fn base_simplex_3d<F>(point: Vector3<f64>, hasher: F) -> (f64, Vector3<f64>)
 where
     F: Fn([isize; 3]) -> usize
 {
     const SKEW_FACTOR_3D: f64 = 0.333333333;
     const UNSKEW_FACTOR_3D: f64 = 0.166666667;
 
-    let [x, y, z] = point;
+    // Using the Vector3 struct for all the internal logic causes a significant
+    // performance regression, for some reason, so we instead break it out into
+    // it's component elements and do all the calculations directly on those.
+    let (x, y, z) = point.into();
 
     /* Skew the input space to determine which simplex cell we're in */
     // let skew = (x + y + z) * SKEW_FACTOR_3D; /* Very nice and simple skew factor for 3D */
@@ -340,18 +331,21 @@ where
     dnoisey *= 28.0;
     dnoisez *= 28.0;
 
-    (noise, [dnoisex, dnoisey, dnoisez])
+    (noise, Vector3::new(dnoisex, dnoisey, dnoisez))
 }
 
 #[inline(always)]
-fn base_simplex_4d<F>(point: [f64; 4], hasher: F) -> (f64, [f64; 4])
+fn base_simplex_4d<F>(point: Vector4<f64>, hasher: F) -> (f64, Vector4<f64>)
 where
     F: Fn([isize; 4]) -> usize
 {
     const SKEW_FACTOR_4D: f64 = 0.309016994;
     const UNSKEW_FACTOR_4D: f64 = 0.138196601;
 
-    let [x, y, z, w] = point;
+    // Using the Vector4 struct for all the internal logic causes a significant
+    // performance regression, for some reason, so we instead break it out into
+    // it's component elements and do all the calculations directly on those.
+    let (x, y, z, w) = point.into();
 
     // Skew the (x,y,z,w) space to determine which cell of 24 simplices we're in
     // Factor for 4D skewing
@@ -587,7 +581,7 @@ where
     dnoisez *= 28.0;
     dnoisew *= 28.0;
 
-    (noise, [dnoisex, dnoisey, dnoisez, dnoisew])
+    (noise, Vector4::new(dnoisex, dnoisey, dnoisez, dnoisew))
 }
 
 // A lookup table to traverse the simplex around a given point in 4D.
@@ -606,61 +600,61 @@ const SIMPLEX: [[u8; 4]; 64] = [
 ];
 
 #[inline(always)]
-pub fn simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
+pub fn simplex_2d(point: Vector2<f64>, hasher: &PermutationTable) -> f64 {
     base_simplex_2d(point, |to_hash| hasher.hash_2d(to_hash)).0
 }
 
 #[inline(always)]
-pub fn simplex_2d_deriv(point: [f64; 2], hasher: &PermutationTable) -> (f64, [f64; 2]) {
+pub fn simplex_2d_deriv(point: Vector2<f64>, hasher: &PermutationTable) -> (f64, Vector2<f64>) {
     base_simplex_2d(point, |to_hash| hasher.hash_2d(to_hash))
 }
 
 #[inline(always)]
-pub fn simplex_2d_variant(point: [f64; 2], variant: isize, hasher: &PermutationTable) -> f64 {
+pub fn simplex_2d_variant(point: Vector2<f64>, variant: isize, hasher: &PermutationTable) -> f64 {
     base_simplex_2d(point, |to_hash| hasher.hash_3d([to_hash[0], to_hash[1], variant])).0
 }
 
 #[inline(always)]
-pub fn simplex_2d_variant_deriv(point: [f64; 2], variant: isize, hasher: &PermutationTable) -> (f64, [f64; 2]) {
+pub fn simplex_2d_variant_deriv(point: Vector2<f64>, variant: isize, hasher: &PermutationTable) -> (f64, Vector2<f64>) {
     base_simplex_2d(point, |to_hash| hasher.hash_3d([to_hash[0], to_hash[1], variant]))
 }
 
 #[inline(always)]
-pub fn simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
+pub fn simplex_3d(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
     base_simplex_3d(point, |to_hash| hasher.hash_3d(to_hash)).0
 }
 
 #[inline(always)]
-pub fn simplex_3d_deriv(point: [f64; 3], hasher: &PermutationTable) -> (f64, [f64; 3]) {
+pub fn simplex_3d_deriv(point: Vector3<f64>, hasher: &PermutationTable) -> (f64, Vector3<f64>) {
     base_simplex_3d(point, |to_hash| hasher.hash_3d(to_hash))
 }
 
 #[inline(always)]
-pub fn simplex_3d_variant(point: [f64; 3], variant: isize, hasher: &PermutationTable) -> f64 {
+pub fn simplex_3d_variant(point: Vector3<f64>, variant: isize, hasher: &PermutationTable) -> f64 {
     base_simplex_3d(point, |to_hash| hasher.hash_4d([to_hash[0], to_hash[1], to_hash[2], variant])).0
 }
 
 #[inline(always)]
-pub fn simplex_3d_variant_deriv(point: [f64; 3], variant: isize, hasher: &PermutationTable) -> (f64, [f64; 3]) {
+pub fn simplex_3d_variant_deriv(point: Vector3<f64>, variant: isize, hasher: &PermutationTable) -> (f64, Vector3<f64>) {
     base_simplex_3d(point, |to_hash| hasher.hash_4d([to_hash[0], to_hash[1], to_hash[2], variant]))
 }
 
 #[inline(always)]
-pub fn simplex_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
+pub fn simplex_4d(point: Vector4<f64>, hasher: &PermutationTable) -> f64 {
     base_simplex_4d(point, |to_hash| hasher.hash_4d(to_hash)).0
 }
 
 #[inline(always)]
-pub fn simplex_4d_deriv(point: [f64; 4], hasher: &PermutationTable) -> (f64, [f64; 4]) {
+pub fn simplex_4d_deriv(point: Vector4<f64>, hasher: &PermutationTable) -> (f64, Vector4<f64>) {
     base_simplex_4d(point, |to_hash| hasher.hash_4d(to_hash))
 }
 
 #[inline(always)]
-pub fn simplex_4d_variant(point: [f64; 4], variant: isize, hasher: &PermutationTable) -> f64 {
+pub fn simplex_4d_variant(point: Vector4<f64>, variant: isize, hasher: &PermutationTable) -> f64 {
     base_simplex_4d(point, |to_hash| hasher.hash_5d([to_hash[0], to_hash[1], to_hash[2], to_hash[3], variant])).0
 }
 
 #[inline(always)]
-pub fn simplex_4d_variant_deriv(point: [f64; 4], variant: isize, hasher: &PermutationTable) -> (f64, [f64; 4]) {
+pub fn simplex_4d_variant_deriv(point: Vector4<f64>, variant: isize, hasher: &PermutationTable) -> (f64, Vector4<f64>) {
     base_simplex_4d(point, |to_hash| hasher.hash_5d([to_hash[0], to_hash[1], to_hash[2], to_hash[3], variant]))
 }

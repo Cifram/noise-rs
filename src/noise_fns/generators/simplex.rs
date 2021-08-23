@@ -52,20 +52,20 @@ impl Seedable for Simplex {
 /// 2-dimensional Simplex noise
 impl NoiseFn<f64, 2> for Simplex {
     fn get(&self, point: [f64; 2]) -> f64 {
-        simplex_2d(point, &self.hasher)
+        simplex_2d(point.into(), &self.hasher)
     }
 }
 
 /// 3-dimensional Simplex noise
 impl NoiseFn<f64, 3> for Simplex {
     fn get(&self, point: [f64; 3]) -> f64 {
-        simplex_3d(point, &self.hasher)
+        simplex_3d(point.into(), &self.hasher)
     }
 }
 
 /// 4-dimensional Simplex noise
 impl NoiseFn<f64, 4> for Simplex {
     fn get(&self, point: [f64; 4]) -> f64 {
-        simplex_4d(point, &self.hasher)
+        simplex_4d(point.into(), &self.hasher)
     }
 }
