@@ -1,6 +1,6 @@
 use crate::{
     gradient,
-    math::vectors::{Vector, Vector2, Vector3, Vector4, VectorMap},
+    math::vectors::{Vector2, Vector3, Vector4},
     permutationtable::PermutationTable,
 };
 

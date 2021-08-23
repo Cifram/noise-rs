@@ -1,5 +1,5 @@
 use crate::{
-    math::vectors::{Vector, Vector2, Vector3, Vector4, VectorMap},
+    math::vectors::{Vector2, Vector3, Vector4},
     permutationtable::PermutationTable,
 };
 use core::f64;
