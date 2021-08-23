@@ -132,7 +132,7 @@ pub fn fbm_perlin_surflet_2d(
 ) -> f64 {
     fbm_2d(
         point, frequency, lacunarity, persistence, octaves,
-        |point, octave| perlin_surflet_2d_variant(point, octave as isize, hasher)
+        |point, octave| perlin_surflet_2d_variant(point.into(), octave as isize, hasher)
     )
 }
 
@@ -142,7 +142,7 @@ pub fn fbm_perlin_surflet_3d(
 ) -> f64 {
     fbm_3d(
         point, frequency, lacunarity, persistence, octaves,
-        |point, octave| perlin_surflet_3d_variant(point, octave as isize, hasher)
+        |point, octave| perlin_surflet_3d_variant(point.into(), octave as isize, hasher)
     )
 }
 
@@ -152,7 +152,7 @@ pub fn fbm_perlin_surflet_4d(
 ) -> f64 {
     fbm_4d(
         point, frequency, lacunarity, persistence, octaves,
-        |point, octave| perlin_surflet_4d_variant(point, octave as isize, hasher)
+        |point, octave| perlin_surflet_4d_variant(point.into(), octave as isize, hasher)
     )
 }
 
