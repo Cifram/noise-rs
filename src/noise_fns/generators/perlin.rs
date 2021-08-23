@@ -51,20 +51,20 @@ impl Seedable for Perlin {
 /// 2-dimensional perlin noise
 impl NoiseFn<f64, 2> for Perlin {
     fn get(&self, point: [f64; 2]) -> f64 {
-        perlin_2d(point, &self.perm_table)
+        perlin_2d(point.into(), &self.perm_table)
     }
 }
 
 /// 3-dimensional perlin noise
 impl NoiseFn<f64, 3> for Perlin {
     fn get(&self, point: [f64; 3]) -> f64 {
-        perlin_3d(point, &self.perm_table)
+        perlin_3d(point.into(), &self.perm_table)
     }
 }
 
 /// 4-dimensional perlin noise
 impl NoiseFn<f64, 4> for Perlin {
     fn get(&self, point: [f64; 4]) -> f64 {
-        perlin_4d(point, &self.perm_table)
+        perlin_4d(point.into(), &self.perm_table)
     }
 }

@@ -47,7 +47,7 @@ pub fn turbulance_perlin_2d<NoiseF>(point: [f64; 2], noise: NoiseF, scale: f64, 
 where
     NoiseF: Fn([f64; 2]) -> f64,
 {
-    displace_2d(point, noise, |point, dim| perlin_2d_variant(point, dim+1, hasher) * scale)
+    displace_2d(point, noise, |point, dim| perlin_2d_variant(point.into(), dim+1, hasher) * scale)
 }
 
 #[inline(always)]
@@ -55,7 +55,7 @@ pub fn turbulance_perlin_3d<NoiseF>(point: [f64; 3], noise: NoiseF, scale: f64, 
 where
     NoiseF: Fn([f64; 3]) -> f64,
 {
-    displace_3d(point, noise, |point, dim| perlin_3d_variant(point, dim+1, hasher) * scale)
+    displace_3d(point, noise, |point, dim| perlin_3d_variant(point.into(), dim+1, hasher) * scale)
 }
 
 #[inline(always)]
@@ -63,5 +63,5 @@ pub fn turbulance_perlin_4d<NoiseF>(point: [f64; 4], noise: NoiseF, scale: f64, 
 where
     NoiseF: Fn([f64; 4]) -> f64,
 {
-    displace_4d(point, noise, |point, dim| perlin_4d_variant(point, dim+1, hasher) * scale)
+    displace_4d(point, noise, |point, dim| perlin_4d_variant(point.into(), dim+1, hasher) * scale)
 }
