@@ -25,7 +25,7 @@ criterion_main!(bench_worley_3d, bench_worley_3d_64x64);
 
 fn bench_worley3d<F>(c: &mut Criterion, distance_function: &F, return_type: ReturnType, name: &str)
 where
-    F: Fn(&[f64], &[f64]) -> f64,
+    F: Fn(&Vector3<f64>, &Vector3<f64>) -> f64,
 {
     let hasher = PermutationTable::new(0);
     c.bench_function(format!("worley 3d {}", name).as_str(), |b| {
@@ -35,7 +35,7 @@ where
 
 fn bench_worley3d_64x64<F>(c: &mut Criterion, distance_function: &F, return_type: ReturnType, name: &str)
 where
-    F: Fn(&[f64], &[f64]) -> f64,
+    F: Fn(&Vector3<f64>, &Vector3<f64>) -> f64,
 {
     let hasher = PermutationTable::new(0);
     c.bench_function(format!("worley 3d {} (64x64)", name).as_str(), |b| {
@@ -50,33 +50,33 @@ where
 }
 
 fn bench_worley3d_euclidean_value(c: &mut Criterion) {
-    bench_worley3d(c, &euclidean, ReturnType::Value, "euclidean value");
+    bench_worley3d(c, &euclidean_3d, ReturnType::Value, "euclidean value");
 }
 
 fn bench_worley3d_euclidean_range(c: &mut Criterion) {
-    bench_worley3d(c, &euclidean, ReturnType::Distance, "euclidean distance");
+    bench_worley3d(c, &euclidean_3d, ReturnType::Distance, "euclidean distance");
 }
 
 fn bench_worley3d_squared_value(c: &mut Criterion) {
-    bench_worley3d(c, &euclidean_squared, ReturnType::Value, "squared value");
+    bench_worley3d(c, &euclidean_squared_3d, ReturnType::Value, "squared value");
 }
 
 fn bench_worley3d_squared_range(c: &mut Criterion) {
-    bench_worley3d(c, &euclidean_squared, ReturnType::Distance, "squared distance");
+    bench_worley3d(c, &euclidean_squared_3d, ReturnType::Distance, "squared distance");
 }
 
 fn bench_worley3d_euclidean_value_64x64(c: &mut Criterion) {
-    bench_worley3d_64x64(c, &euclidean, ReturnType::Value, "euclidean value");
+    bench_worley3d_64x64(c, &euclidean_3d, ReturnType::Value, "euclidean value");
 }
 
 fn bench_worley3d_euclidean_range_64x64(c: &mut Criterion) {
-    bench_worley3d_64x64(c, &euclidean, ReturnType::Distance, "euclidean distance");
+    bench_worley3d_64x64(c, &euclidean_3d, ReturnType::Distance, "euclidean distance");
 }
 
 fn bench_worley3d_squared_value_64x64(c: &mut Criterion) {
-    bench_worley3d_64x64(c, &euclidean_squared, ReturnType::Value, "squared value");
+    bench_worley3d_64x64(c, &euclidean_squared_3d, ReturnType::Value, "squared value");
 }
 
 fn bench_worley3d_squared_range_64x64(c: &mut Criterion) {
-    bench_worley3d_64x64(c, &euclidean_squared, ReturnType::Distance, "squared distance");
+    bench_worley3d_64x64(c, &euclidean_squared_3d, ReturnType::Distance, "squared distance");
 }

@@ -78,6 +78,20 @@ macro_rules! vector_type {
                 self.magnitude_squared().sqrt()
             }
 
+            pub fn range_squared(self, other: Self) -> T
+            where
+                T: Zero + AddAssign + Sub + Mul + Num,
+            {
+                (self - other).magnitude_squared()
+            }
+
+            pub fn range(self, other: Self) -> T
+            where
+                T: Zero + AddAssign + Mul + Real,
+            {
+                (self - other).magnitude()
+            }
+
             pub fn apply<F>(&mut self, f: F)
             where
                 F: Fn(T) -> T,

@@ -11,21 +11,36 @@ pub enum ReturnType {
 }
 
 pub mod distance_functions {
-    pub fn euclidean(p1: &[f64], p2: &[f64]) -> f64 {
-        p1.iter()
-            .zip(p2)
-            .map(|(a, b)| *a - *b)
-            .map(|a| a * a)
-            .fold(0.0, |acc, x| acc + x)
-            .sqrt()
+    use crate::math::vectors::{Vector2, Vector3, Vector4};
+
+    #[inline]
+    pub fn euclidean_2d(p1: &Vector2<f64>, p2: &Vector2<f64>) -> f64 {
+        p1.range(*p2)
     }
 
-    pub fn euclidean_squared(p1: &[f64], p2: &[f64]) -> f64 {
-        p1.iter()
-            .zip(p2)
-            .map(|(a, b)| *a - *b)
-            .map(|a| a * a)
-            .fold(0.0, |acc, x| acc + x)
+    #[inline]
+    pub fn euclidean_3d(p1: &Vector3<f64>, p2: &Vector3<f64>) -> f64 {
+        p1.range(*p2)
+    }
+
+    #[inline]
+    pub fn euclidean_4d(p1: &Vector4<f64>, p2: &Vector4<f64>) -> f64 {
+        p1.range(*p2)
+    }
+
+    #[inline]
+    pub fn euclidean_squared_2d(p1: &Vector2<f64>, p2: &Vector2<f64>) -> f64 {
+        p1.range_squared(*p2)
+    }
+
+    #[inline]
+    pub fn euclidean_squared_3d(p1: &Vector3<f64>, p2: &Vector3<f64>) -> f64 {
+        p1.range_squared(*p2)
+    }
+
+    #[inline]
+    pub fn euclidean_squared_4d(p1: &Vector4<f64>, p2: &Vector4<f64>) -> f64 {
+        p1.range_squared(*p2)
     }
 }
 
@@ -36,7 +51,7 @@ pub fn worley_2d<F>(
     point: Vector2<f64>,
 ) -> f64
 where
-    F: Fn(&[f64], &[f64]) -> f64,
+    F: Fn(&Vector2<f64>, &Vector2<f64>) -> f64,
 {
     fn get_point(index: usize, whole: Vector2<isize>) -> Vector2<f64> {
         get_vec2(index) + whole.numcast().unwrap()
@@ -54,7 +69,7 @@ where
     let mut seed_cell = near;
     let seed_index = hasher.hash_2d(near.into());
     let seed_point = get_point(seed_index, near);
-    let mut distance = distance_function(&point.into_array(), &seed_point.into_array());
+    let mut distance = distance_function(&point, &seed_point);
 
     let range = frac.map(|x| (0.5 - x).powf(2.0));
 
@@ -64,7 +79,7 @@ where
                 let test_point = Vector2::from([$x, $y]);
                 let index = hasher.hash_2d(test_point.into_array());
                 let offset = get_point(index, test_point);
-                let cur_distance = distance_function(&point.into_array(), &offset.into_array());
+                let cur_distance = distance_function(&point, &offset);
                 if cur_distance < distance {
                     distance = cur_distance;
                     seed_cell = test_point;
@@ -119,7 +134,7 @@ pub fn worley_3d<F>(
     point: Vector3<f64>,
 ) -> f64
 where
-    F: Fn(&[f64], &[f64]) -> f64,
+    F: Fn(&Vector3<f64>, &Vector3<f64>) -> f64,
 {
     fn get_point(index: usize, whole: Vector3<isize>) -> Vector3<f64> {
         get_vec3(index) + whole.numcast().unwrap()
@@ -137,7 +152,7 @@ where
     let mut seed_cell = near;
     let seed_index = hasher.hash_3d(near.into_array());
     let seed_point = get_point(seed_index, near);
-    let mut distance = distance_function(&point.into_array(), &seed_point.into_array());
+    let mut distance = distance_function(&point, &seed_point);
 
     let range = frac.map(|x| (0.5 - x).powf(2.0));
 
@@ -147,7 +162,7 @@ where
                 let test_point = Vector3::from([$x, $y, $z]);
                 let index = hasher.hash_3d(test_point.into_array());
                 let offset = get_point(index, test_point);
-                let cur_distance = distance_function(&point.into_array(), &offset.into_array());
+                let cur_distance = distance_function(&point, &offset);
                 if cur_distance < distance {
                     distance = cur_distance;
                     seed_cell = test_point;
@@ -226,7 +241,7 @@ pub fn worley_4d<F>(
     point: Vector4<f64>,
 ) -> f64
 where
-    F: Fn(&[f64], &[f64]) -> f64,
+    F: Fn(&Vector4<f64>, &Vector4<f64>) -> f64,
 {
     fn get_point(index: usize, whole: Vector4<isize>) -> Vector4<f64> {
         get_vec4(index) + whole.numcast().unwrap()
@@ -244,7 +259,7 @@ where
     let mut seed_cell = near;
     let seed_index = hasher.hash_4d(near.into_array());
     let seed_point = get_point(seed_index, near);
-    let mut distance = distance_function(&point.into_array(), &seed_point.into_array());
+    let mut distance = distance_function(&point, &seed_point);
 
     let range = frac.map(|x| (0.5 - x).powf(2.0));
 
@@ -254,7 +269,7 @@ where
                 let test_point = Vector4::from([$x, $y, $z, $w]);
                 let index = hasher.hash_4d(test_point.into_array());
                 let offset = get_point(index, test_point);
-                let cur_distance = distance_function(&point.into_array(), &offset.into_array());
+                let cur_distance = distance_function(&point, &offset);
                 if cur_distance < distance {
                     distance = cur_distance;
                     seed_cell = test_point;
