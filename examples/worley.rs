@@ -2,14 +2,13 @@ extern crate noise;
 
 use noise::{
     core::worley::{distance_functions::*, ReturnType, worley_2d, worley_3d, worley_4d},
-    permutationtable::{NoiseHasher, PermutationTable},
+    permutationtable::PermutationTable,
     utils::*,
 };
 
-fn output<F, NH, const DIM: usize>(closure: F, hasher: &NH, name: &str)
+fn output<F, const DIM: usize>(closure: F, hasher: &PermutationTable, name: &str)
 where
-    F: Fn([f64; DIM], &NH) -> f64,
-    NH: NoiseHasher + Clone,
+    F: Fn([f64; DIM], &PermutationTable) -> f64,
 {
     PlaneMapBuilder::new_fn(closure, &hasher)
         .set_size(1024, 1024)
