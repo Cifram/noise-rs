@@ -5,7 +5,7 @@ use crate::{
 };
 
 #[inline(always)]
-fn base_open_simplex_2d<F>(point: [f64; 2], hasher: F) -> f64
+fn base_open_simplex_2d<F>(point: Vector2<f64>, hasher: F) -> f64
 where
     F: Fn([isize; 2]) -> usize
 {
@@ -23,8 +23,6 @@ where
             0.0
         }
     }
-
-    let point = Vector2::from(point);
 
     // Place input coordinates onto grid.
     let stretch_offset = point.sum() * STRETCH_CONSTANT;
@@ -47,7 +45,7 @@ where
     let rel_pos = point - origin;
 
     macro_rules! contribute (
-        ($x:expr, $y:expr) => {
+        ($x:literal, $y:literal) => {
             {
                 let offset = Vector2::new($x, $y);
                 let vertex = stretched_floor + offset;
@@ -87,7 +85,7 @@ where
 }
 
 #[inline(always)]
-fn base_open_simplex_3d<F>(point: [f64; 3], hasher: F) -> f64
+fn base_open_simplex_3d<F>(point: Vector3<f64>, hasher: F) -> f64
 where
     F: Fn([isize; 3]) -> usize
 {
@@ -105,8 +103,6 @@ where
             0.0
         }
     }
-
-    let point = Vector3::from(point);
 
     // Place input coordinates on simplectic honeycomb.
     let stretch_offset = point.sum() * STRETCH_CONSTANT;
@@ -131,7 +127,7 @@ where
     let rel_pos = point - origin;
 
     macro_rules! contribute (
-        ($x:expr, $y:expr, $z:expr) => {
+        ($x:literal, $y:literal, $z:literal) => {
             {
                 let offset = Vector3::new($x, $y, $z);
                 let vertex = stretched_floor + offset;
@@ -199,7 +195,7 @@ where
 }
 
 #[inline(always)]
-fn base_open_simplex_4d<F>(point: [f64; 4], hasher: F) -> f64
+fn base_open_simplex_4d<F>(point: Vector4<f64>, hasher: F) -> f64
 where
     F: Fn([isize; 4]) -> usize
 {
@@ -218,8 +214,6 @@ where
             0.0
         }
     }
-
-    let point = Vector4::from(point);
 
     // Place input coordinates on simplectic honeycomb.
     let stretch_offset = point.sum() * STRETCH_CONSTANT;
@@ -246,7 +240,7 @@ where
     let rel_pos = point - origin;
 
     macro_rules! contribute (
-        ($x:expr, $y:expr, $z:expr, $w:expr) => {
+        ($x:literal, $y:literal, $z:literal, $w:literal) => {
             {
                 let offset = Vector4::new($x, $y, $z, $w);
                 let vertex = stretched_floor + offset;
@@ -364,31 +358,31 @@ where
 }
 
 #[inline(always)]
-pub fn open_simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
+pub fn open_simplex_2d(point: Vector2<f64>, hasher: &PermutationTable) -> f64 {
     base_open_simplex_2d(point, |to_hash| hasher.hash_2d(to_hash))
 }
 
 #[inline(always)]
-pub fn open_simplex_2d_variant(point: [f64; 2], variant: isize, hasher: &PermutationTable) -> f64 {
+pub fn open_simplex_2d_variant(point: Vector2<f64>, variant: isize, hasher: &PermutationTable) -> f64 {
     base_open_simplex_2d(point, |to_hash| hasher.hash_3d([to_hash[0], to_hash[1], variant]))
 }
 
 #[inline(always)]
-pub fn open_simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
+pub fn open_simplex_3d(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
     base_open_simplex_3d(point, |to_hash| hasher.hash_3d(to_hash))
 }
 
 #[inline(always)]
-pub fn open_simplex_3d_variant(point: [f64; 3], variant: isize, hasher: &PermutationTable) -> f64 {
+pub fn open_simplex_3d_variant(point: Vector3<f64>, variant: isize, hasher: &PermutationTable) -> f64 {
     base_open_simplex_3d(point, |to_hash| hasher.hash_4d([to_hash[0], to_hash[1], to_hash[2], variant]))
 }
 
 #[inline(always)]
-pub fn open_simplex_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
+pub fn open_simplex_4d(point: Vector4<f64>, hasher: &PermutationTable) -> f64 {
     base_open_simplex_4d(point, |to_hash| hasher.hash_4d(to_hash))
 }
 
 #[inline(always)]
-pub fn open_simplex_4d_variant(point: [f64; 4], variant: isize, hasher: &PermutationTable) -> f64 {
+pub fn open_simplex_4d_variant(point: Vector4<f64>, variant: isize, hasher: &PermutationTable) -> f64 {
     base_open_simplex_4d(point, |to_hash| hasher.hash_5d([to_hash[0], to_hash[1], to_hash[2], to_hash[3], variant]))
 }

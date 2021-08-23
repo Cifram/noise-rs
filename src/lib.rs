@@ -19,7 +19,7 @@ pub use crate::noise_fns::*;
 
 pub mod core;
 mod gradient;
-mod math;
+pub mod math;
 mod noise_fns;
 pub mod permutationtable;
 pub mod utils;
