@@ -83,11 +83,11 @@ where
 
     let half = frac.map(|x| x > 0.5);
 
-    let near = whole + half.map(|x| x as isize);
-    let far = whole + half.map(|x| !x as isize);
+    let near = half.map(|x| x as isize) + whole;
+    let far = half.map(|x| !x as isize) + whole;
 
     let mut seed_cell = near;
-    let seed_index = hasher.hash_2d(near.into_array());
+    let seed_index = hasher.hash_2d(near.into());
     let seed_point = get_point(seed_index, near);
     let mut distance = distance_function(&point.into_array(), &seed_point.into_array());
 
@@ -168,8 +168,8 @@ where
 
     let half = frac.map(|x| x > 0.5);
 
-    let near = whole + half.map(|x| x as isize);
-    let far = whole + half.map(|x| !x as isize);
+    let near = half.map(|x| x as isize) + whole;
+    let far = half.map(|x| !x as isize) + whole;
 
     let mut seed_cell = near;
     let seed_index = hasher.hash_3d(near.into_array());
@@ -277,8 +277,8 @@ where
 
     let half = frac.map(|x| x > 0.5);
 
-    let near = whole + half.map(|x| x as isize);
-    let far = whole + half.map(|x| !x as isize);
+    let near = half.map(|x| x as isize) + whole;
+    let far = half.map(|x| !x as isize) + whole;
 
     let mut seed_cell = near;
     let seed_index = hasher.hash_4d(near.into_array());

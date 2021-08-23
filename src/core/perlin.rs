@@ -21,7 +21,7 @@ where
     const SCALE_FACTOR: f64 = f64::consts::SQRT_2;
 
     let floored = point.floor();
-    let corner = floored.numcast().unwrap();
+    let corner = floored.numcast::<isize>().unwrap();
     let distance = point - floored;
 
     macro_rules! call_gradient(
@@ -70,7 +70,7 @@ where
     const SCALE_FACTOR: f64 = 1.154_700_538_379_251_5;
 
     let floored = point.floor();
-    let corner = floored.numcast().unwrap();
+    let corner = floored.numcast::<isize>().unwrap();
     let distance = point - floored;
 
     macro_rules! call_gradient(
@@ -138,7 +138,7 @@ where
     const SCALE_FACTOR: f64 = 1.0; // 1/(sqrt(N)/2), N=4 -> 2/sqrt(4) -> 2/2 -> 1
 
     let floored = point.floor();
-    let corner = floored.numcast().unwrap();
+    let corner = floored.numcast::<isize>().unwrap();
     let distance = point - floored;
 
     macro_rules! call_gradient(

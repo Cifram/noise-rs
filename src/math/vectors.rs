@@ -171,12 +171,34 @@ macro_rules! vector_type {
             }
         }
 
+        impl<T> Add<T> for $type_name<T>
+        where
+            T: Copy + Add<Output = T>,
+        {
+            type Output = Self;
+
+            fn add(self, rhs: T) -> Self::Output {
+                Self {
+                    $($dim: self.$dim + rhs,)+
+                }
+            }
+        }
+
         impl<T> AddAssign for $type_name<T>
         where
             T: AddAssign,
         {
             fn add_assign(&mut self, rhs: Self) {
                 $(self.$dim += rhs.$dim;)+
+            }
+        }
+
+        impl<T> AddAssign<T> for $type_name<T>
+        where
+            T: Copy + AddAssign,
+        {
+            fn add_assign(&mut self, rhs: T) {
+                $(self.$dim += rhs;)+
             }
         }
 
@@ -193,12 +215,34 @@ macro_rules! vector_type {
             }
         }
 
+        impl<T> Sub<T> for $type_name<T>
+        where
+            T: Copy + Sub<Output = T>,
+        {
+            type Output = Self;
+
+            fn sub(self, rhs: T) -> Self::Output {
+                Self {
+                    $($dim: self.$dim - rhs,)+
+                }
+            }
+        }
+
         impl<T> SubAssign for $type_name<T>
         where
             T: SubAssign,
         {
             fn sub_assign(&mut self, rhs: Self) {
                 $(self.$dim -= rhs.$dim;)+
+            }
+        }
+
+        impl<T> SubAssign<T> for $type_name<T>
+        where
+            T: Copy + SubAssign,
+        {
+            fn sub_assign(&mut self, rhs: T) {
+                $(self.$dim -= rhs;)+
             }
         }
 

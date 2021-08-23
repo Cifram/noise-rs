@@ -7,13 +7,13 @@ pub fn value_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
     let point = Vector2::from(point);
 
     let floored = point.floor();
-    let corner = floored.numcast().unwrap();
+    let corner = floored.numcast::<isize>().unwrap();
     let weight = (point - floored).map_quintic();
 
     macro_rules! get(
         ($corner:expr, $offset:expr) => {
             {
-               hasher.hash_2d(($corner + Vector2::from($offset)).into_array()) as f64 / 255.0
+               hasher.hash_2d(($corner + Vector2::from($offset)).into()) as f64 / 255.0
             }
         }
     );
@@ -34,13 +34,13 @@ pub fn value_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
     let point = Vector3::from(point);
 
     let floored = point.floor();
-    let corner = floored.numcast().unwrap();
+    let corner = floored.numcast::<isize>().unwrap();
     let weight = (point - floored).map_quintic();
 
     macro_rules! get(
         ($corner:expr, $offset:expr) => {
             {
-               hasher.hash_3d(($corner + Vector3::from($offset)).into_array()) as f64 / 255.0
+               hasher.hash_3d(($corner + Vector3::from($offset)).into()) as f64 / 255.0
             }
         }
     );
@@ -69,13 +69,13 @@ pub fn value_4d(point: [f64; 4], hasher: &PermutationTable) -> f64 {
     let point = Vector4::from(point);
 
     let floored = point.floor();
-    let corner = floored.numcast().unwrap();
+    let corner = floored.numcast::<isize>().unwrap();
     let weight = (point - floored).map_quintic();
 
     macro_rules! get(
         ($corner:expr, $offset:expr) => {
             {
-               hasher.hash_4d(($corner + Vector4::from($offset)).into_array()) as f64 / 255.0
+               hasher.hash_4d(($corner + Vector4::from($offset)).into()) as f64 / 255.0
             }
         }
     );

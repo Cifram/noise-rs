@@ -92,7 +92,7 @@ pub fn super_simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
 
     // Get base point of simplex and barycentric coordinates in simplex space
     let simplex_base_point = simplex_point.floor();
-    let simplex_base_point_i = simplex_base_point.numcast().unwrap();
+    let simplex_base_point_i = simplex_base_point.numcast::<isize>().unwrap();
     let simplex_rel_coords = simplex_point - simplex_base_point;
 
     // Create index to lookup table from barycentric coordinates
@@ -117,7 +117,7 @@ pub fn super_simplex_2d(point: [f64; 2], hasher: &PermutationTable) -> f64 {
         if attn > 0.0 {
             let lattice_point =
                 simplex_base_point_i + Vector2::from(lattice_lookup.0).numcast().unwrap();
-            let gradient = Vector2::from(gradient::grad2(hasher.hash_2d(lattice_point.into_array())));
+            let gradient = Vector2::from(gradient::grad2(hasher.hash_2d(lattice_point.into())));
             value += attn.powi(4) * gradient.dot(dpos);
         }
     }
@@ -135,10 +135,10 @@ pub fn super_simplex_3d(point: [f64; 3], hasher: &PermutationTable) -> f64 {
 
     // Get base point of simplex and barycentric coordinates in simplex space
     let simplex_base_point = simplex_point.floor();
-    let simplex_base_point_i = simplex_base_point.numcast().unwrap();
+    let simplex_base_point_i = simplex_base_point.numcast::<isize>().unwrap();
     let simplex_rel_coords = simplex_point - simplex_base_point;
     let second_simplex_base_point = second_simplex_point.floor();
-    let second_simplex_base_point_i = second_simplex_base_point.numcast().unwrap();
+    let second_simplex_base_point_i = second_simplex_base_point.numcast::<isize>().unwrap();
     let second_simplex_rel_coords = second_simplex_point - second_simplex_base_point;
 
     // Create indices to lookup table from barycentric coordinates

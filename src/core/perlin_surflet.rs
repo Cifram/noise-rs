@@ -23,7 +23,7 @@ where
     }
 
     let floored = point.floor();
-    let corner = floored.numcast().unwrap();
+    let corner = floored.numcast::<isize>().unwrap();
     let distance = point - floored;
 
     macro_rules! call_surflet(
@@ -65,7 +65,7 @@ where
     }
 
     let floored = point.floor();
-    let corner = floored.numcast().unwrap();
+    let corner = floored.numcast::<isize>().unwrap();
     let distance = point - floored;
 
     macro_rules! call_surflet(
@@ -111,7 +111,7 @@ where
     }
 
     let floored = point.floor();
-    let corner = floored.numcast().unwrap();
+    let corner = floored.numcast::<isize>().unwrap();
     let distance = point - floored;
 
     macro_rules! call_surflet(
