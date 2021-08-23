@@ -27,39 +27,6 @@ pub mod distance_functions {
             .map(|a| a * a)
             .fold(0.0, |acc, x| acc + x)
     }
-
-    pub fn manhattan(p1: &[f64], p2: &[f64]) -> f64 {
-        p1.iter()
-            .zip(p2)
-            .map(|(a, b)| *a - *b)
-            .map(|a| a.abs())
-            .fold(0.0, |acc, x| acc + x)
-    }
-
-    pub fn chebyshev(p1: &[f64], p2: &[f64]) -> f64 {
-        p1.iter()
-            .zip(p2)
-            .map(|(a, b)| *a - *b)
-            .map(|a| a.abs())
-            .fold(f64::MIN, |a, b| a.max(b))
-    }
-
-    pub fn quadratic(p1: &[f64], p2: &[f64]) -> f64 {
-        #[cfg(not(feature = "std"))]
-        use alloc::vec::Vec;
-
-        let temp: Vec<f64> = p1.iter().zip(p2).map(|(a, b)| *a - *b).collect();
-
-        let mut result = 0.0;
-
-        for i in &temp {
-            for j in &temp {
-                result += *i * *j;
-            }
-        }
-
-        result
-    }
 }
 
 pub fn worley_2d<F>(

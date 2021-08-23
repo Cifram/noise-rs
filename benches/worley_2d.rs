@@ -14,24 +14,12 @@ criterion_group!(bench_worley_2d,
     bench_worley2d_euclidean_range,
     bench_worley2d_squared_value,
     bench_worley2d_squared_range,
-    bench_worley2d_manhattan_value,
-    bench_worley2d_manhattan_range,
-    bench_worley2d_chebyshev_value,
-    bench_worley2d_chebyshev_range,
-    bench_worley2d_quadratic_value,
-    bench_worley2d_quadratic_range,
 );
 criterion_group!(bench_worley_2d_64x64,
     bench_worley2d_euclidean_value_64x64,
     bench_worley2d_euclidean_range_64x64,
     bench_worley2d_squared_value_64x64,
     bench_worley2d_squared_range_64x64,
-    bench_worley2d_manhattan_value_64x64,
-    bench_worley2d_manhattan_range_64x64,
-    bench_worley2d_chebyshev_value_64x64,
-    bench_worley2d_chebyshev_range_64x64,
-    bench_worley2d_quadratic_value_64x64,
-    bench_worley2d_quadratic_range_64x64,
 );
 criterion_main!(bench_worley_2d, bench_worley_2d_64x64);
 
@@ -77,30 +65,6 @@ fn bench_worley2d_squared_range(c: &mut Criterion) {
     bench_worley2d(c, &euclidean_squared, ReturnType::Distance, "squared distance");
 }
 
-fn bench_worley2d_manhattan_value(c: &mut Criterion) {
-    bench_worley2d(c, &manhattan, ReturnType::Value, "manhattan value");
-}
-
-fn bench_worley2d_manhattan_range(c: &mut Criterion) {
-    bench_worley2d(c, &manhattan, ReturnType::Distance, "manhattan distance");
-}
-
-fn bench_worley2d_chebyshev_value(c: &mut Criterion) {
-    bench_worley2d(c, &chebyshev, ReturnType::Value, "chebyshev value");
-}
-
-fn bench_worley2d_chebyshev_range(c: &mut Criterion) {
-    bench_worley2d(c, &chebyshev, ReturnType::Distance, "chebyshev distance");
-}
-
-fn bench_worley2d_quadratic_value(c: &mut Criterion) {
-    bench_worley2d(c, &quadratic, ReturnType::Value, "quadratic value");
-}
-
-fn bench_worley2d_quadratic_range(c: &mut Criterion) {
-    bench_worley2d(c, &quadratic, ReturnType::Distance, "quadratic distance");
-}
-
 fn bench_worley2d_euclidean_value_64x64(c: &mut Criterion) {
     bench_worley2d_64x64(c, &euclidean, ReturnType::Value, "euclidean value");
 }
@@ -115,28 +79,4 @@ fn bench_worley2d_squared_value_64x64(c: &mut Criterion) {
 
 fn bench_worley2d_squared_range_64x64(c: &mut Criterion) {
     bench_worley2d_64x64(c, &euclidean_squared, ReturnType::Distance, "squared distance");
-}
-
-fn bench_worley2d_manhattan_value_64x64(c: &mut Criterion) {
-    bench_worley2d_64x64(c, &manhattan, ReturnType::Value, "manhattan value");
-}
-
-fn bench_worley2d_manhattan_range_64x64(c: &mut Criterion) {
-    bench_worley2d_64x64(c, &manhattan, ReturnType::Distance, "manhattan distance");
-}
-
-fn bench_worley2d_chebyshev_value_64x64(c: &mut Criterion) {
-    bench_worley2d_64x64(c, &chebyshev, ReturnType::Value, "chebyshev value");
-}
-
-fn bench_worley2d_chebyshev_range_64x64(c: &mut Criterion) {
-    bench_worley2d_64x64(c, &chebyshev, ReturnType::Distance, "chebyshev distance");
-}
-
-fn bench_worley2d_quadratic_value_64x64(c: &mut Criterion) {
-    bench_worley2d_64x64(c, &quadratic, ReturnType::Value, "quadratic value");
-}
-
-fn bench_worley2d_quadratic_range_64x64(c: &mut Criterion) {
-    bench_worley2d_64x64(c, &quadratic, ReturnType::Distance, "quadratic distance");
 }
