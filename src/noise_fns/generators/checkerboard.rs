@@ -44,18 +44,18 @@ impl Default for Checkerboard {
 
 impl NoiseFn<f64, 2> for Checkerboard {
     fn get(&self, point: [f64; 2]) -> f64 {
-        checkerboard_2d(point, self.size as f64)
+        checkerboard_2d(point.into(), self.size as f64)
     }
 }
 
 impl NoiseFn<f64, 3> for Checkerboard {
     fn get(&self, point: [f64; 3]) -> f64 {
-        checkerboard_3d(point, self.size as f64)
+        checkerboard_3d(point.into(), self.size as f64)
     }
 }
 
 impl NoiseFn<f64, 4> for Checkerboard {
     fn get(&self, point: [f64; 4]) -> f64 {
-        checkerboard_4d(point, self.size as f64)
+        checkerboard_4d(point.into(), self.size as f64)
     }
 }
