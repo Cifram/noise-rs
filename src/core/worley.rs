@@ -66,13 +66,11 @@ pub fn worley_2d<F>(
     hasher: &PermutationTable,
     distance_function: F,
     return_type: ReturnType,
-    point: [f64; 2],
+    point: Vector2<f64>,
 ) -> f64
 where
     F: Fn(&[f64], &[f64]) -> f64,
 {
-    let point = Vector2::from(point);
-
     fn get_point(index: usize, whole: Vector2<isize>) -> Vector2<f64> {
         get_vec2(index) + whole.numcast().unwrap()
     }
@@ -151,13 +149,11 @@ pub fn worley_3d<F>(
     hasher: &PermutationTable,
     distance_function: F,
     return_type: ReturnType,
-    point: [f64; 3],
+    point: Vector3<f64>,
 ) -> f64
 where
     F: Fn(&[f64], &[f64]) -> f64,
 {
-    let point = Vector3::from(point);
-
     fn get_point(index: usize, whole: Vector3<isize>) -> Vector3<f64> {
         get_vec3(index) + whole.numcast().unwrap()
     }
@@ -260,13 +256,11 @@ pub fn worley_4d<F>(
     hasher: &PermutationTable,
     distance_function: F,
     return_type: ReturnType,
-    point: [f64; 4],
+    point: Vector4<f64>,
 ) -> f64
 where
     F: Fn(&[f64], &[f64]) -> f64,
 {
-    let point = Vector4::from(point);
-
     fn get_point(index: usize, whole: Vector4<isize>) -> Vector4<f64> {
         get_vec4(index) + whole.numcast().unwrap()
     }

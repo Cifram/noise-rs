@@ -98,7 +98,7 @@ impl NoiseFn<f64, 2> for Worley {
             &self.perm_table,
             &self.distance_function,
             self.return_type,
-            (Vector2::from(point) * self.frequency).into_array(),
+            Vector2::from(point) * self.frequency,
         )
     }
 }
@@ -109,7 +109,7 @@ impl NoiseFn<f64, 3> for Worley {
             &self.perm_table,
             &self.distance_function,
             self.return_type,
-            (Vector3::from(point) * self.frequency).into_array(),
+            Vector3::from(point) * self.frequency,
         )
     }
 }
@@ -121,7 +121,7 @@ impl NoiseFn<f64, 4> for Worley {
             &self.perm_table,
             &self.distance_function,
             self.return_type,
-            (Vector4::from(point) * self.frequency).into_array(),
+            Vector4::from(point) * self.frequency,
         )
     }
 }
