@@ -4,46 +4,6 @@ use crate::{
 };
 use core::f64;
 
-#[derive(Clone, Copy, Debug)]
-pub enum ReturnType {
-    Distance,
-    Value,
-}
-
-pub mod distance_functions {
-    use crate::math::vectors::{Vector2, Vector3, Vector4};
-
-    #[inline]
-    pub fn euclidean_2d(p1: &Vector2<f64>, p2: &Vector2<f64>) -> f64 {
-        p1.range(*p2)
-    }
-
-    #[inline]
-    pub fn euclidean_3d(p1: &Vector3<f64>, p2: &Vector3<f64>) -> f64 {
-        p1.range(*p2)
-    }
-
-    #[inline]
-    pub fn euclidean_4d(p1: &Vector4<f64>, p2: &Vector4<f64>) -> f64 {
-        p1.range(*p2)
-    }
-
-    #[inline]
-    pub fn euclidean_squared_2d(p1: &Vector2<f64>, p2: &Vector2<f64>) -> f64 {
-        p1.range_squared(*p2)
-    }
-
-    #[inline]
-    pub fn euclidean_squared_3d(p1: &Vector3<f64>, p2: &Vector3<f64>) -> f64 {
-        p1.range_squared(*p2)
-    }
-
-    #[inline]
-    pub fn euclidean_squared_4d(p1: &Vector4<f64>, p2: &Vector4<f64>) -> f64 {
-        p1.range_squared(*p2)
-    }
-}
-
 const WORLEY_POINTS_2D: [(f64, f64); 256] = [
     (-0.45000000000000001,  0.00000000000000000),
     (-0.40909090909090906, -0.04090909090909087),
@@ -819,17 +779,12 @@ const WORLEY_POINTS_4D: [(f64, f64, f64, f64); 256] = [
     ( 0.45000000000000001,  0.00000000000000000,  0.00000000000000000,  0.00000000000000000),
 ];
 
-pub fn worley_2d<F>(
-    hasher: &PermutationTable,
-    distance_function: F,
-    return_type: ReturnType,
-    point: Vector2<f64>,
-) -> f64
-where
-    F: Fn(&Vector2<f64>, &Vector2<f64>) -> f64,
-{
-    fn get_point(index: usize, whole: Vector2<isize>) -> Vector2<f64> {
-        Vector2::from(WORLEY_POINTS_2D[index]) + whole.numcast().unwrap()
+#[inline(always)]
+fn base_worley_2d(point: Vector2<f64>, hasher: &PermutationTable) -> (f64, Vector2<f64>, Vector2<isize>) {
+    #[inline(always)]
+    fn get_point(cell: Vector2<isize>, hasher: &PermutationTable) -> Vector2<f64> {
+        let index = hasher.hash_2d(cell.into());
+        Vector2::from(WORLEY_POINTS_2D[index]) + cell.numcast().unwrap()
     }
 
     let cell = point.floor();
@@ -841,60 +796,48 @@ where
     let near = half.map(|x| x as isize) + whole;
     let far = half.map(|x| !x as isize) + whole;
 
-    let mut seed_cell = near;
-    let seed_index = hasher.hash_2d(near.into());
-    let seed_point = get_point(seed_index, near);
-    let mut distance = distance_function(&point, &seed_point);
+    let mut nearest_cell = near;
+    let mut nearest_point = get_point(near, hasher);
+    let mut nearest_range_sqr = point.range_squared(nearest_point);
 
-    let range = frac.map(|x| (0.5 - x).powf(2.0));
+    let cell_range = frac.map(|x| (0.5 - x).powf(2.0));
 
     macro_rules! test_point(
         [$x:expr, $y:expr] => {
             {
-                let test_point = Vector2::from([$x, $y]);
-                let index = hasher.hash_2d(test_point.into_array());
-                let offset = get_point(index, test_point);
-                let cur_distance = distance_function(&point, &offset);
-                if cur_distance < distance {
-                    distance = cur_distance;
-                    seed_cell = test_point;
+                let test_cell = Vector2::from([$x, $y]);
+                let test_point = get_point(test_cell, hasher);
+                let test_range_sqr = point.range_squared(test_point);
+                if test_range_sqr < nearest_range_sqr {
+                    nearest_range_sqr = test_range_sqr;
+                    nearest_cell = test_cell;
+                    nearest_point = test_point;
                 }
             }
         }
     );
 
-    if range.x < distance {
+    if cell_range.x < nearest_range_sqr {
         test_point![far.x, near.y];
     }
 
-    if range.y < distance {
+    if cell_range.y < nearest_range_sqr {
         test_point![near.x, far.y];
     }
 
-    if range.x < distance && range.y < distance {
+    if cell_range.x < nearest_range_sqr && cell_range.y < nearest_range_sqr {
         test_point![far.x, far.y];
     }
 
-    let value = match return_type {
-        ReturnType::Distance => distance,
-        ReturnType::Value => hasher.hash_2d(seed_cell.into_array()) as f64 / 255.0,
-    };
-
-    value * 2.0 - 1.0
+    (nearest_range_sqr, nearest_point, nearest_cell)
 }
 
 #[inline(always)]
-pub fn worley_3d<F>(
-    hasher: &PermutationTable,
-    distance_function: F,
-    return_type: ReturnType,
-    point: Vector3<f64>,
-) -> f64
-where
-    F: Fn(&Vector3<f64>, &Vector3<f64>) -> f64,
-{
-    fn get_point(index: usize, whole: Vector3<isize>) -> Vector3<f64> {
-        Vector3::from(WORLEY_POINTS_3D[index]) + whole.numcast().unwrap()
+fn base_worley_3d(point: Vector3<f64>, hasher: &PermutationTable) -> (f64, Vector3<f64>, Vector3<isize>) {
+    #[inline(always)]
+    fn get_point(cell: Vector3<isize>, hasher: &PermutationTable) -> Vector3<f64> {
+        let index = hasher.hash_3d(cell.into());
+        Vector3::from(WORLEY_POINTS_3D[index]) + cell.numcast().unwrap()
     }
 
     let cell = point.floor();
@@ -906,73 +849,61 @@ where
     let near = half.map(|x| x as isize) + whole;
     let far = half.map(|x| !x as isize) + whole;
 
-    let mut seed_cell = near;
-    let seed_index = hasher.hash_3d(near.into_array());
-    let seed_point = get_point(seed_index, near);
-    let mut distance = distance_function(&point, &seed_point);
+    let mut nearest_cell = near;
+    let mut nearest_point = get_point(near, hasher);
+    let mut nearest_range_sqr = point.range_squared(nearest_point);
 
     let range = frac.map(|x| (0.5 - x).powf(2.0));
 
     macro_rules! test_point(
         [$x:expr, $y:expr, $z:expr] => {
             {
-                let test_point = Vector3::from([$x, $y, $z]);
-                let index = hasher.hash_3d(test_point.into_array());
-                let offset = get_point(index, test_point);
-                let cur_distance = distance_function(&point, &offset);
-                if cur_distance < distance {
-                    distance = cur_distance;
-                    seed_cell = test_point;
+                let test_cell = Vector3::from([$x, $y, $z]);
+                let test_point = get_point(test_cell, hasher);
+                let cur_distance = point.range_squared(test_point);
+                if cur_distance < nearest_range_sqr {
+                    nearest_range_sqr = cur_distance;
+                    nearest_cell = test_cell;
+                    nearest_point = test_point;
                 }
             }
         }
     );
 
-    if range.x < distance {
+    if range.x < nearest_range_sqr {
         test_point![far.x, near.y, near.z];
     }
-    if range.y < distance {
+    if range.y < nearest_range_sqr {
         test_point![near.x, far.y, near.z];
     }
-    if range.z < distance {
+    if range.z < nearest_range_sqr {
         test_point![near.x, near.y, far.z];
     }
 
-    if range.x < distance && range.y < distance {
+    if range.x < nearest_range_sqr && range.y < nearest_range_sqr {
         test_point![far.x, far.y, near.z];
     }
-    if range.x < distance && range.z < distance {
+    if range.x < nearest_range_sqr && range.z < nearest_range_sqr {
         test_point![far.x, near.y, far.z];
     }
-    if range.y < distance && range.z < distance {
+    if range.y < nearest_range_sqr && range.z < nearest_range_sqr {
         test_point![near.x, far.y, far.z];
     }
 
-    if range.x < distance && range.y < distance && range.z < distance {
+    if range.x < nearest_range_sqr && range.y < nearest_range_sqr && range.z < nearest_range_sqr {
         test_point![far.x, far.y, far.z];
     }
 
-    let value = match return_type {
-        ReturnType::Distance => distance,
-        ReturnType::Value => hasher.hash_3d(seed_cell.into_array()) as f64 / 255.0,
-    };
-
-    value * 2.0 - 1.0
+    (nearest_range_sqr, nearest_point, nearest_cell)
 }
 
 #[inline(always)]
 #[allow(clippy::cognitive_complexity)]
-pub fn worley_4d<F>(
-    hasher: &PermutationTable,
-    distance_function: F,
-    return_type: ReturnType,
-    point: Vector4<f64>,
-) -> f64
-where
-    F: Fn(&Vector4<f64>, &Vector4<f64>) -> f64,
-{
-    fn get_point(index: usize, whole: Vector4<isize>) -> Vector4<f64> {
-        Vector4::from(WORLEY_POINTS_4D[index]) + whole.numcast().unwrap()
+fn base_worley_4d(point: Vector4<f64>, hasher: &PermutationTable) -> (f64, Vector4<f64>, Vector4<isize>) {
+    #[inline(always)]
+    fn get_point(cell: Vector4<isize>, hasher: &PermutationTable) -> Vector4<f64> {
+        let index = hasher.hash_4d(cell.into());
+        Vector4::from(WORLEY_POINTS_4D[index]) + cell.numcast().unwrap()
     }
 
     let cell = point.floor();
@@ -984,81 +915,150 @@ where
     let near = half.map(|x| x as isize) + whole;
     let far = half.map(|x| !x as isize) + whole;
 
-    let mut seed_cell = near;
-    let seed_index = hasher.hash_4d(near.into_array());
-    let seed_point = get_point(seed_index, near);
-    let mut distance = distance_function(&point, &seed_point);
+    let mut nearest_cell = near;
+    let mut nearest_point = get_point(near, hasher);
+    let mut nearest_range_sqr = point.range_squared(nearest_point);
 
-    let range = frac.map(|x| (0.5 - x).powf(2.0));
+    let cell_range = frac.map(|x| (0.5 - x).powf(2.0));
 
     macro_rules! test_point(
         [$x:expr, $y:expr, $z:expr, $w:expr] => {
             {
-                let test_point = Vector4::from([$x, $y, $z, $w]);
-                let index = hasher.hash_4d(test_point.into_array());
-                let offset = get_point(index, test_point);
-                let cur_distance = distance_function(&point, &offset);
-                if cur_distance < distance {
-                    distance = cur_distance;
-                    seed_cell = test_point;
+                let test_cell = Vector4::from([$x, $y, $z, $w]);
+                let test_point = get_point(test_cell, hasher);
+                let cur_distance = point.range_squared(test_point);
+                if cur_distance < nearest_range_sqr {
+                    nearest_range_sqr = cur_distance;
+                    nearest_cell = test_cell;
+                    nearest_point = test_point;
                 }
             }
         }
     );
 
-    if range.x < distance {
+    if cell_range.x < nearest_range_sqr {
         test_point![far.x, near.y, near.z, near.w];
     }
-    if range.y < distance {
+    if cell_range.y < nearest_range_sqr {
         test_point![near.x, far.y, near.z, near.w];
     }
-    if range.z < distance {
+    if cell_range.z < nearest_range_sqr {
         test_point![near.x, near.y, far.z, near.w];
     }
-    if range.w < distance {
+    if cell_range.w < nearest_range_sqr {
         test_point![near.x, near.y, near.z, far.w];
     }
 
-    if range.x < distance && range.y < distance {
+    if cell_range.x < nearest_range_sqr && cell_range.y < nearest_range_sqr {
         test_point![far.x, far.y, near.z, near.w];
     }
-    if range.x < distance && range.z < distance {
+    if cell_range.x < nearest_range_sqr && cell_range.z < nearest_range_sqr {
         test_point![far.x, near.y, far.z, near.w];
     }
-    if range.x < distance && range.w < distance {
+    if cell_range.x < nearest_range_sqr && cell_range.w < nearest_range_sqr {
         test_point![far.x, near.y, near.z, far.w];
     }
-    if range.y < distance && range.z < distance {
+    if cell_range.y < nearest_range_sqr && cell_range.z < nearest_range_sqr {
         test_point![near.x, far.y, far.z, near.w];
     }
-    if range.y < distance && range.w < distance {
+    if cell_range.y < nearest_range_sqr && cell_range.w < nearest_range_sqr {
         test_point![near.x, far.y, near.z, far.w];
     }
-    if range.z < distance && range.w < distance {
+    if cell_range.z < nearest_range_sqr && cell_range.w < nearest_range_sqr {
         test_point![near.x, near.y, far.z, far.w];
     }
 
-    if range.x < distance && range.y < distance && range.z < distance {
+    if
+        cell_range.x < nearest_range_sqr &&
+        cell_range.y < nearest_range_sqr &&
+        cell_range.z < nearest_range_sqr
+    {
         test_point![far.x, far.y, far.z, near.w];
     }
-    if range.x < distance && range.y < distance && range.w < distance {
+    if
+        cell_range.x < nearest_range_sqr &&
+        cell_range.y < nearest_range_sqr &&
+        cell_range.w < nearest_range_sqr
+    {
         test_point![far.x, far.y, near.z, far.w];
     }
-    if range.x < distance && range.z < distance && range.w < distance {
+    if
+        cell_range.x < nearest_range_sqr &&
+        cell_range.z < nearest_range_sqr &&
+        cell_range.w < nearest_range_sqr
+    {
         test_point![far.x, near.y, far.z, far.w];
     }
-    if range.y < distance && range.z < distance && range.w < distance {
+    if
+        cell_range.y < nearest_range_sqr &&
+        cell_range.z < nearest_range_sqr &&
+        cell_range.w < nearest_range_sqr
+    {
         test_point![near.x, far.y, far.z, far.w];
     }
 
-    if range.x < distance && range.y < distance && range.z < distance && range.w < distance {
+    if
+        cell_range.x < nearest_range_sqr &&
+        cell_range.y < nearest_range_sqr &&
+        cell_range.z < nearest_range_sqr &&
+        cell_range.w < nearest_range_sqr
+    {
         test_point![far.x, far.y, far.z, far.w];
     }
 
-    let value = match return_type {
-        ReturnType::Distance => distance,
-        ReturnType::Value => hasher.hash_4d(seed_cell.into_array()) as f64 / 255.0,
-    };
+    (nearest_range_sqr, nearest_point, nearest_cell)
+}
 
-    value * 2.0 - 1.0
+#[inline]
+pub fn worley_2d_range(point: Vector2<f64>, hasher: &PermutationTable) -> f64 {
+    let (range_sqr, _, _) = base_worley_2d(point, hasher);
+    range_sqr.sqrt()
+}
+
+#[inline]
+pub fn worley_2d_range_sqr(point: Vector2<f64>, hasher: &PermutationTable) -> f64 {
+    let (range_sqr, _, _) = base_worley_2d(point, hasher);
+    range_sqr
+}
+
+#[inline]
+pub fn worley_2d_value(point: Vector2<f64>, hasher: &PermutationTable) -> f64 {
+    let (_, _, cell) = base_worley_2d(point, hasher);
+    hasher.hash_2d(cell.into()) as f64 / 127.5 - 1.0
+}
+
+#[inline]
+pub fn worley_3d_range(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
+    let (range_sqr, _, _) = base_worley_3d(point, hasher);
+    range_sqr.sqrt()
+}
+
+#[inline]
+pub fn worley_3d_range_sqr(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
+    let (range_sqr, _, _) = base_worley_3d(point, hasher);
+    range_sqr
+}
+
+#[inline]
+pub fn worley_3d_value(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
+    let (_, _, cell) = base_worley_3d(point, hasher);
+    hasher.hash_3d(cell.into()) as f64 / 127.5 - 1.0
+}
+
+#[inline]
+pub fn worley_4d_range(point: Vector4<f64>, hasher: &PermutationTable) -> f64 {
+    let (range_sqr, _, _) = base_worley_4d(point, hasher);
+    range_sqr.sqrt()
+}
+
+#[inline]
+pub fn worley_4d_range_sqr(point: Vector4<f64>, hasher: &PermutationTable) -> f64 {
+    let (range_sqr, _, _) = base_worley_4d(point, hasher);
+    range_sqr
+}
+
+#[inline]
+pub fn worley_4d_value(point: Vector4<f64>, hasher: &PermutationTable) -> f64 {
+    let (_, _, cell) = base_worley_4d(point, hasher);
+    hasher.hash_4d(cell.into()) as f64 / 127.5 - 1.0
 }
