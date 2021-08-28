@@ -779,252 +779,550 @@ const WORLEY_POINTS_4D: [(f64, f64, f64, f64); 256] = [
     ( 0.45000000000000001,  0.00000000000000000,  0.00000000000000000,  0.00000000000000000),
 ];
 
-#[inline(always)]
-fn base_worley_2d(point: Vector2<f64>, hasher: &PermutationTable) -> (f64, Vector2<f64>, Vector2<isize>) {
-    #[inline(always)]
-    fn get_point(cell: Vector2<isize>, hasher: &PermutationTable) -> Vector2<f64> {
-        let index = hasher.hash_2d(cell.into());
-        Vector2::from(WORLEY_POINTS_2D[index]) + cell.numcast().unwrap()
-    }
+type Worley2DOutput = (f64, Vector2<f64>, Vector2<isize>);
+type Worley3DOutput = (f64, Vector3<f64>, Vector3<isize>);
+type Worley4DOutput = (f64, Vector4<f64>, Vector4<isize>);
 
-    let cell = point.floor();
-    let whole = cell.numcast().unwrap();
-    let frac = point - cell;
+#[inline(always)]
+fn get_point_2d(cell: Vector2<isize>, hasher: &PermutationTable) -> Vector2<f64> {
+    let index = hasher.hash_2d(cell.into());
+    Vector2::from(WORLEY_POINTS_2D[index]) + cell.numcast().unwrap()
+}
+
+#[inline(always)]
+fn get_point_3d(cell: Vector3<isize>, hasher: &PermutationTable) -> Vector3<f64> {
+    let index = hasher.hash_3d(cell.into());
+    Vector3::from(WORLEY_POINTS_3D[index]) + cell.numcast().unwrap()
+}
+
+#[inline(always)]
+fn get_point_4d(cell: Vector4<isize>, hasher: &PermutationTable) -> Vector4<f64> {
+    let index = hasher.hash_4d(cell.into());
+    Vector4::from(WORLEY_POINTS_4D[index]) + cell.numcast().unwrap()
+}
+
+#[inline(always)]
+pub fn base_worley_2d_1point(point: Vector2<f64>, hasher: &PermutationTable) -> Worley2DOutput {
+    let floor = point.floor();
+    let cell = floor.numcast().unwrap();
+    let frac = point - floor;
 
     let half = frac.map(|x| x > 0.5);
 
-    let near = half.map(|x| x as isize) + whole;
-    let far = half.map(|x| !x as isize) + whole;
+    let near = half.map(|x| x as isize) + cell;
+    let far = half.map(|x| !x as isize) + cell;
 
     let mut nearest_cell = near;
-    let mut nearest_point = get_point(near, hasher);
+    let mut nearest_point = get_point_2d(near, hasher);
     let mut nearest_range_sqr = point.range_squared(nearest_point);
 
-    let cell_range = frac.map(|x| (0.5 - x).powf(2.0));
+    let cell_range = frac.n_minus(0.5).sqr();
 
     macro_rules! test_point(
-        [$x:expr, $y:expr] => {
+        ([$x:expr, $y:expr] if $($range:expr),+) => {
             {
-                let test_cell = Vector2::from([$x, $y]);
-                let test_point = get_point(test_cell, hasher);
-                let test_range_sqr = point.range_squared(test_point);
-                if test_range_sqr < nearest_range_sqr {
-                    nearest_range_sqr = test_range_sqr;
-                    nearest_cell = test_cell;
-                    nearest_point = test_point;
+                if $($range < nearest_range_sqr) && + {
+                    let test_cell = Vector2::from([$x, $y]);
+                    let test_point = get_point_2d(test_cell, hasher);
+                    let test_range_sqr = point.range_squared(test_point);
+                    if test_range_sqr < nearest_range_sqr {
+                        nearest_range_sqr = test_range_sqr;
+                        nearest_cell = test_cell;
+                        nearest_point = test_point;
+                    }
                 }
             }
         }
     );
 
-    if cell_range.x < nearest_range_sqr {
-        test_point![far.x, near.y];
-    }
-
-    if cell_range.y < nearest_range_sqr {
-        test_point![near.x, far.y];
-    }
-
-    if cell_range.x < nearest_range_sqr && cell_range.y < nearest_range_sqr {
-        test_point![far.x, far.y];
-    }
+    test_point!([far.x, near.y] if cell_range.x);
+    test_point!([near.x, far.y] if cell_range.y);
+    test_point!([far.x, far.y] if cell_range.x, cell_range.y);
 
     (nearest_range_sqr, nearest_point, nearest_cell)
 }
 
 #[inline(always)]
-fn base_worley_3d(point: Vector3<f64>, hasher: &PermutationTable) -> (f64, Vector3<f64>, Vector3<isize>) {
-    #[inline(always)]
-    fn get_point(cell: Vector3<isize>, hasher: &PermutationTable) -> Vector3<f64> {
-        let index = hasher.hash_3d(cell.into());
-        Vector3::from(WORLEY_POINTS_3D[index]) + cell.numcast().unwrap()
-    }
+pub fn base_worley_2d_2point(point: Vector2<f64>, hasher: &PermutationTable) -> (Worley2DOutput, Worley2DOutput) {
+    let floor = point.floor();
+    let cell = floor.numcast().unwrap();
+    let frac = point - floor;
 
-    let cell = point.floor();
-    let whole = cell.numcast().unwrap();
-    let frac = point - cell;
-
-    let half = frac.map(|x| x > 0.5);
-
-    let near = half.map(|x| x as isize) + whole;
-    let far = half.map(|x| !x as isize) + whole;
-
-    let mut nearest_cell = near;
-    let mut nearest_point = get_point(near, hasher);
-    let mut nearest_range_sqr = point.range_squared(nearest_point);
-
-    let range = frac.map(|x| (0.5 - x).powf(2.0));
+    let mut nearest_cell1 = cell;
+    let mut nearest_point1 = get_point_2d(cell, hasher);
+    let mut nearest_range_sqr1 = point.range_squared(nearest_point1);
+    let mut nearest_cell2 = Vector2::zero();
+    let mut nearest_point2 = Vector2::zero();
+    let mut nearest_range_sqr2 = f64::MAX;
 
     macro_rules! test_point(
-        [$x:expr, $y:expr, $z:expr] => {
+        ([$x:expr, $y:expr] if $($range:expr),+) => {
             {
-                let test_cell = Vector3::from([$x, $y, $z]);
-                let test_point = get_point(test_cell, hasher);
-                let cur_distance = point.range_squared(test_point);
-                if cur_distance < nearest_range_sqr {
-                    nearest_range_sqr = cur_distance;
-                    nearest_cell = test_cell;
-                    nearest_point = test_point;
+                if $($range < nearest_range_sqr2) && + {
+                    let test_cell = Vector2::from([$x, $y]);
+                    let test_point = get_point_2d(test_cell, hasher);
+                    let test_range_sqr = point.range_squared(test_point);
+                    if test_range_sqr < nearest_range_sqr1 {
+                        nearest_range_sqr2 = nearest_range_sqr1;
+                        nearest_cell2 = nearest_cell1;
+                        nearest_point2 = nearest_point1;
+                        nearest_range_sqr1 = test_range_sqr;
+                        nearest_cell1 = test_cell;
+                        nearest_point1 = test_point;
+                    } else if test_range_sqr < nearest_range_sqr2 {
+                        nearest_range_sqr2 = test_range_sqr;
+                        nearest_cell2 = test_cell;
+                        nearest_point2 = test_point;
+                    }
                 }
             }
         }
     );
 
-    if range.x < nearest_range_sqr {
-        test_point![far.x, near.y, near.z];
-    }
-    if range.y < nearest_range_sqr {
-        test_point![near.x, far.y, near.z];
-    }
-    if range.z < nearest_range_sqr {
-        test_point![near.x, near.y, far.z];
-    }
+    let cell_range_min1 = frac.sqr();
+    let cell_range_pls1 = frac.n_minus(1.0).sqr() * -1.0;
+    let cell_range_min2 = (frac + 1.0).sqr();
+    let cell_range_pls2 = (frac.n_minus(1.0) + 1.0).sqr() * -1.0;
 
-    if range.x < nearest_range_sqr && range.y < nearest_range_sqr {
-        test_point![far.x, far.y, near.z];
-    }
-    if range.x < nearest_range_sqr && range.z < nearest_range_sqr {
-        test_point![far.x, near.y, far.z];
-    }
-    if range.y < nearest_range_sqr && range.z < nearest_range_sqr {
-        test_point![near.x, far.y, far.z];
-    }
+    test_point!([cell.x - 1, cell.y] if cell_range_min1.x);
+    test_point!([cell.x, cell.y - 1] if cell_range_min1.y);
+    test_point!([cell.x + 1, cell.y] if cell_range_pls1.x);
+    test_point!([cell.x, cell.y + 1] if cell_range_pls1.y);
 
-    if range.x < nearest_range_sqr && range.y < nearest_range_sqr && range.z < nearest_range_sqr {
-        test_point![far.x, far.y, far.z];
-    }
+    test_point!([cell.x - 1, cell.y - 1] if cell_range_min1.x, cell_range_min1.y);
+    test_point!([cell.x + 1, cell.y - 1] if cell_range_pls1.x, cell_range_min1.y);
+    test_point!([cell.x - 1, cell.y + 1] if cell_range_min1.x, cell_range_pls1.y);
+    test_point!([cell.x + 1, cell.y + 1] if cell_range_pls1.x, cell_range_pls1.y);
+
+    test_point!([cell.x - 2, cell.y] if cell_range_min2.x);
+    test_point!([cell.x + 2, cell.y] if cell_range_pls2.x);
+    test_point!([cell.x, cell.y - 2] if cell_range_min2.y);
+    test_point!([cell.x, cell.y + 2] if cell_range_pls2.y);
+
+    test_point!([cell.x - 2, cell.y - 1] if cell_range_min2.x, cell_range_min1.y);
+    test_point!([cell.x - 2, cell.y + 1] if cell_range_min2.x, cell_range_pls1.y);
+    test_point!([cell.x + 2, cell.y - 1] if cell_range_pls2.x, cell_range_min1.y);
+    test_point!([cell.x + 2, cell.y + 1] if cell_range_pls2.x, cell_range_pls1.y);
+    test_point!([cell.x - 1, cell.y - 2] if cell_range_min1.x, cell_range_min2.y);
+    test_point!([cell.x + 1, cell.y - 2] if cell_range_pls1.x, cell_range_min2.y);
+    test_point!([cell.x - 1, cell.y + 2] if cell_range_min1.x, cell_range_pls2.y);
+    test_point!([cell.x + 1, cell.y + 2] if cell_range_pls1.x, cell_range_pls2.y);
+
+    (
+        (nearest_range_sqr1, nearest_point1, nearest_cell1),
+        (nearest_range_sqr2, nearest_point2, nearest_cell2)
+    )
+}
+
+#[inline(always)]
+pub fn base_worley_3d(point: Vector3<f64>, hasher: &PermutationTable) -> Worley3DOutput {
+    let floor = point.floor();
+    let cell = floor.numcast().unwrap();
+    let frac = point - floor;
+
+    let half = frac.map(|x| x > 0.5);
+
+    let near = half.map(|x| x as isize) + cell;
+    let far = half.map(|x| !x as isize) + cell;
+
+    let mut nearest_cell = near;
+    let mut nearest_point = get_point_3d(near, hasher);
+    let mut nearest_range_sqr = point.range_squared(nearest_point);
+
+    let cell_range = frac.n_minus(0.5).sqr();
+
+    macro_rules! test_point(
+        ([$x:expr, $y:expr, $z:expr] if $($range:expr),+) => {
+            {
+                if $($range < nearest_range_sqr) && + {
+                    let test_cell = Vector3::from([$x, $y, $z]);
+                    let test_point = get_point_3d(test_cell, hasher);
+                    let test_range_sqr = point.range_squared(test_point);
+                    if test_range_sqr < nearest_range_sqr {
+                        nearest_range_sqr = test_range_sqr;
+                        nearest_cell = test_cell;
+                        nearest_point = test_point;
+                    }
+                }
+            }
+        }
+    );
+
+    test_point!([far.x, near.y, near.z] if cell_range.x);
+    test_point!([near.x, far.y, near.z] if cell_range.y);
+    test_point!([near.x, near.y, far.z] if cell_range.z);
+
+    test_point!([far.x, far.y, near.z] if cell_range.x, cell_range.y);
+    test_point!([far.x, near.y, far.z] if cell_range.x, cell_range.z);
+    test_point!([near.x, far.y, far.z] if cell_range.y, cell_range.z);
+
+    test_point!([far.x, far.y, far.z] if cell_range.x, cell_range.y, cell_range.z);
 
     (nearest_range_sqr, nearest_point, nearest_cell)
+}
+
+#[inline(always)]
+pub fn base_worley_3d_2point(point: Vector3<f64>, hasher: &PermutationTable) -> (Worley3DOutput, Worley3DOutput) {
+    let floor = point.floor();
+    let cell = floor.numcast().unwrap();
+    let frac = point - floor;
+
+    let mut nearest_cell1 = cell;
+    let mut nearest_point1 = get_point_3d(cell, hasher);
+    let mut nearest_range_sqr1 = point.range_squared(nearest_point1);
+    let mut nearest_cell2 = Vector3::zero();
+    let mut nearest_point2 = Vector3::zero();
+    let mut nearest_range_sqr2 = f64::MAX;
+
+    macro_rules! test_point(
+        ([$x:expr, $y:expr, $z:expr] if $($range:expr),+) => {
+            {
+                if $($range < nearest_range_sqr2) && + {
+                    let test_cell = Vector3::from([$x, $y, $z]);
+                    let test_point = get_point_3d(test_cell, hasher);
+                    let test_range_sqr = point.range_squared(test_point);
+                    if test_range_sqr < nearest_range_sqr1 {
+                        nearest_range_sqr2 = nearest_range_sqr1;
+                        nearest_cell2 = nearest_cell1;
+                        nearest_point2 = nearest_point1;
+                        nearest_range_sqr1 = test_range_sqr;
+                        nearest_cell1 = test_cell;
+                        nearest_point1 = test_point;
+                    } else if test_range_sqr < nearest_range_sqr2 {
+                        nearest_range_sqr2 = test_range_sqr;
+                        nearest_cell2 = test_cell;
+                        nearest_point2 = test_point;
+                    }
+                }
+            }
+        }
+    );
+
+    let cell_range_min1 = frac.sqr();
+    let cell_range_pls1 = frac.n_minus(1.0).sqr() * -1.0;
+    let cell_range_min2 = (frac + 1.0).sqr();
+    let cell_range_pls2 = (frac.n_minus(1.0) + 1.0).sqr() * -1.0;
+
+    test_point!([cell.x - 1, cell.y, cell.z] if cell_range_min1.x);
+    test_point!([cell.x, cell.y - 1, cell.z] if cell_range_min1.y);
+    test_point!([cell.x, cell.y, cell.z - 1] if cell_range_min1.z);
+    test_point!([cell.x + 1, cell.y, cell.z] if cell_range_pls1.x);
+    test_point!([cell.x, cell.y + 1, cell.z] if cell_range_pls1.y);
+    test_point!([cell.x, cell.y, cell.z + 1] if cell_range_pls1.z);
+
+    test_point!([cell.x - 1, cell.y - 1, cell.z] if cell_range_min1.x, cell_range_min1.y);
+    test_point!([cell.x + 1, cell.y - 1, cell.z] if cell_range_pls1.x, cell_range_min1.y);
+    test_point!([cell.x - 1, cell.y + 1, cell.z] if cell_range_min1.x, cell_range_pls1.y);
+    test_point!([cell.x + 1, cell.y + 1, cell.z] if cell_range_pls1.x, cell_range_pls1.y);
+    test_point!([cell.x - 1, cell.y, cell.z - 1] if cell_range_min1.x, cell_range_min1.z);
+    test_point!([cell.x + 1, cell.y, cell.z - 1] if cell_range_pls1.x, cell_range_min1.z);
+    test_point!([cell.x - 1, cell.y, cell.z + 1] if cell_range_min1.x, cell_range_pls1.z);
+    test_point!([cell.x + 1, cell.y, cell.z + 1] if cell_range_pls1.x, cell_range_pls1.z);
+    test_point!([cell.x, cell.y - 1, cell.z - 1] if cell_range_min1.y, cell_range_min1.z);
+    test_point!([cell.x, cell.y + 1, cell.z - 1] if cell_range_pls1.x, cell_range_min1.z);
+    test_point!([cell.x, cell.y - 1, cell.z + 1] if cell_range_min1.x, cell_range_pls1.z);
+    test_point!([cell.x, cell.y + 1, cell.z + 1] if cell_range_pls1.x, cell_range_pls1.z);
+
+    test_point!([cell.x - 1, cell.y - 1, cell.z - 1] if cell_range_min1.x, cell_range_min1.y, cell_range_min1.z);
+    test_point!([cell.x + 1, cell.y - 1, cell.z - 1] if cell_range_pls1.x, cell_range_min1.y, cell_range_min1.z);
+    test_point!([cell.x - 1, cell.y + 1, cell.z - 1] if cell_range_min1.x, cell_range_pls1.y, cell_range_min1.z);
+    test_point!([cell.x + 1, cell.y + 1, cell.z - 1] if cell_range_pls1.x, cell_range_pls1.y, cell_range_min1.z);
+    test_point!([cell.x - 1, cell.y - 1, cell.z + 1] if cell_range_min1.x, cell_range_min1.y, cell_range_pls1.z);
+    test_point!([cell.x + 1, cell.y - 1, cell.z + 1] if cell_range_pls1.x, cell_range_min1.y, cell_range_pls1.z);
+    test_point!([cell.x - 1, cell.y + 1, cell.z + 1] if cell_range_min1.x, cell_range_pls1.y, cell_range_pls1.z);
+    test_point!([cell.x + 1, cell.y + 1, cell.z + 1] if cell_range_pls1.x, cell_range_pls1.y, cell_range_pls1.z);
+
+    test_point!([cell.x - 2, cell.y, cell.z] if cell_range_min2.x);
+    test_point!([cell.x + 2, cell.y, cell.z] if cell_range_pls2.x);
+    test_point!([cell.x, cell.y - 2, cell.z] if cell_range_min2.y);
+    test_point!([cell.x, cell.y + 2, cell.z] if cell_range_pls2.y);
+    test_point!([cell.x, cell.y, cell.z - 2] if cell_range_min2.z);
+    test_point!([cell.x, cell.y, cell.z + 2] if cell_range_pls2.z);
+
+    test_point!([cell.x - 2, cell.y - 1, cell.z] if cell_range_min2.x, cell_range_min1.y);
+    test_point!([cell.x - 2, cell.y + 1, cell.z] if cell_range_min2.x, cell_range_pls1.y);
+    test_point!([cell.x - 2, cell.y, cell.z - 1] if cell_range_min2.x, cell_range_min1.z);
+    test_point!([cell.x - 2, cell.y, cell.z + 1] if cell_range_min2.x, cell_range_pls1.z);
+    test_point!([cell.x + 2, cell.y - 1, cell.z] if cell_range_pls2.x, cell_range_min1.y);
+    test_point!([cell.x + 2, cell.y + 1, cell.z] if cell_range_pls2.x, cell_range_pls1.y);
+    test_point!([cell.x + 2, cell.y, cell.z - 1] if cell_range_pls2.x, cell_range_min1.z);
+    test_point!([cell.x + 2, cell.y, cell.z + 1] if cell_range_pls2.x, cell_range_pls1.z);
+
+    test_point!([cell.x - 1, cell.y - 2, cell.z] if cell_range_min1.x, cell_range_min2.y);
+    test_point!([cell.x + 1, cell.y - 2, cell.z] if cell_range_pls1.x, cell_range_min2.y);
+    test_point!([cell.x, cell.y - 2, cell.z - 1] if cell_range_min1.z, cell_range_min2.y);
+    test_point!([cell.x, cell.y - 2, cell.z + 1] if cell_range_pls1.z, cell_range_min2.y);
+    test_point!([cell.x - 1, cell.y + 2, cell.z] if cell_range_min1.x, cell_range_pls2.y);
+    test_point!([cell.x + 1, cell.y + 2, cell.z] if cell_range_pls1.x, cell_range_pls2.y);
+    test_point!([cell.x, cell.y + 2, cell.z - 1] if cell_range_min1.z, cell_range_pls2.y);
+    test_point!([cell.x, cell.y + 2, cell.z + 1] if cell_range_pls1.z, cell_range_pls2.y);
+
+    test_point!([cell.x - 1, cell.y, cell.z - 2] if cell_range_min1.x, cell_range_min2.z);
+    test_point!([cell.x + 1, cell.y, cell.z - 2] if cell_range_pls1.x, cell_range_min2.z);
+    test_point!([cell.x, cell.y - 1, cell.z - 2] if cell_range_min1.y, cell_range_min2.z);
+    test_point!([cell.x, cell.y + 1, cell.z - 2] if cell_range_pls1.y, cell_range_min2.z);
+    test_point!([cell.x - 1, cell.y, cell.z + 2] if cell_range_min1.x, cell_range_pls2.z);
+    test_point!([cell.x + 1, cell.y, cell.z + 2] if cell_range_pls1.x, cell_range_pls2.z);
+    test_point!([cell.x, cell.y - 1, cell.z + 2] if cell_range_min1.y, cell_range_pls2.z);
+    test_point!([cell.x, cell.y + 1, cell.z + 2] if cell_range_pls1.y, cell_range_pls2.z);
+
+    (
+        (nearest_range_sqr1, nearest_point1, nearest_cell1),
+        (nearest_range_sqr2, nearest_point2, nearest_cell2)
+    )
 }
 
 #[inline(always)]
 #[allow(clippy::cognitive_complexity)]
-fn base_worley_4d(point: Vector4<f64>, hasher: &PermutationTable) -> (f64, Vector4<f64>, Vector4<isize>) {
-    #[inline(always)]
-    fn get_point(cell: Vector4<isize>, hasher: &PermutationTable) -> Vector4<f64> {
-        let index = hasher.hash_4d(cell.into());
-        Vector4::from(WORLEY_POINTS_4D[index]) + cell.numcast().unwrap()
-    }
-
-    let cell = point.floor();
-    let whole = cell.numcast().unwrap();
-    let frac = point - cell;
+pub fn base_worley_4d(point: Vector4<f64>, hasher: &PermutationTable) -> Worley4DOutput {
+    let floor = point.floor();
+    let cell = floor.numcast().unwrap();
+    let frac = point - floor;
 
     let half = frac.map(|x| x > 0.5);
 
-    let near = half.map(|x| x as isize) + whole;
-    let far = half.map(|x| !x as isize) + whole;
+    let near = half.map(|x| x as isize) + cell;
+    let far = half.map(|x| !x as isize) + cell;
 
     let mut nearest_cell = near;
-    let mut nearest_point = get_point(near, hasher);
+    let mut nearest_point = get_point_4d(near, hasher);
     let mut nearest_range_sqr = point.range_squared(nearest_point);
 
-    let cell_range = frac.map(|x| (0.5 - x).powf(2.0));
+    let cell_range = frac.n_minus(0.5).sqr();
 
     macro_rules! test_point(
-        [$x:expr, $y:expr, $z:expr, $w:expr] => {
+        ([$x:expr, $y:expr, $z:expr, $w:expr] if $($range:expr),+) => {
             {
-                let test_cell = Vector4::from([$x, $y, $z, $w]);
-                let test_point = get_point(test_cell, hasher);
-                let cur_distance = point.range_squared(test_point);
-                if cur_distance < nearest_range_sqr {
-                    nearest_range_sqr = cur_distance;
-                    nearest_cell = test_cell;
-                    nearest_point = test_point;
+                if $($range < nearest_range_sqr) && + {
+                    let test_cell = Vector4::from([$x, $y, $z, $w]);
+                    let test_point = get_point_4d(test_cell, hasher);
+                    let test_range_sqr = point.range_squared(test_point);
+                    if test_range_sqr < nearest_range_sqr {
+                        nearest_range_sqr = test_range_sqr;
+                        nearest_cell = test_cell;
+                        nearest_point = test_point;
+                    }
                 }
             }
         }
     );
 
-    if cell_range.x < nearest_range_sqr {
-        test_point![far.x, near.y, near.z, near.w];
-    }
-    if cell_range.y < nearest_range_sqr {
-        test_point![near.x, far.y, near.z, near.w];
-    }
-    if cell_range.z < nearest_range_sqr {
-        test_point![near.x, near.y, far.z, near.w];
-    }
-    if cell_range.w < nearest_range_sqr {
-        test_point![near.x, near.y, near.z, far.w];
-    }
+    test_point!([far.x, near.y, near.z, near.w] if cell_range.x);
+    test_point!([near.x, far.y, near.z, near.w] if cell_range.y);
+    test_point!([near.x, near.y, far.z, near.w] if cell_range.z);
+    test_point!([near.x, near.y, near.z, far.w] if cell_range.w);
 
-    if cell_range.x < nearest_range_sqr && cell_range.y < nearest_range_sqr {
-        test_point![far.x, far.y, near.z, near.w];
-    }
-    if cell_range.x < nearest_range_sqr && cell_range.z < nearest_range_sqr {
-        test_point![far.x, near.y, far.z, near.w];
-    }
-    if cell_range.x < nearest_range_sqr && cell_range.w < nearest_range_sqr {
-        test_point![far.x, near.y, near.z, far.w];
-    }
-    if cell_range.y < nearest_range_sqr && cell_range.z < nearest_range_sqr {
-        test_point![near.x, far.y, far.z, near.w];
-    }
-    if cell_range.y < nearest_range_sqr && cell_range.w < nearest_range_sqr {
-        test_point![near.x, far.y, near.z, far.w];
-    }
-    if cell_range.z < nearest_range_sqr && cell_range.w < nearest_range_sqr {
-        test_point![near.x, near.y, far.z, far.w];
-    }
+    test_point!([far.x, far.y, near.z, near.w] if cell_range.x, cell_range.y);
+    test_point!([far.x, near.y, far.z, near.w] if cell_range.x, cell_range.z);
+    test_point!([far.x, near.y, near.z, far.w] if cell_range.x, cell_range.w);
+    test_point!([near.x, far.y, far.z, near.w] if cell_range.y, cell_range.z);
+    test_point!([near.x, far.y, near.z, far.w] if cell_range.y, cell_range.w);
+    test_point!([near.x, near.y, far.z, far.w] if cell_range.z, cell_range.w);
 
-    if
-        cell_range.x < nearest_range_sqr &&
-        cell_range.y < nearest_range_sqr &&
-        cell_range.z < nearest_range_sqr
-    {
-        test_point![far.x, far.y, far.z, near.w];
-    }
-    if
-        cell_range.x < nearest_range_sqr &&
-        cell_range.y < nearest_range_sqr &&
-        cell_range.w < nearest_range_sqr
-    {
-        test_point![far.x, far.y, near.z, far.w];
-    }
-    if
-        cell_range.x < nearest_range_sqr &&
-        cell_range.z < nearest_range_sqr &&
-        cell_range.w < nearest_range_sqr
-    {
-        test_point![far.x, near.y, far.z, far.w];
-    }
-    if
-        cell_range.y < nearest_range_sqr &&
-        cell_range.z < nearest_range_sqr &&
-        cell_range.w < nearest_range_sqr
-    {
-        test_point![near.x, far.y, far.z, far.w];
-    }
+    test_point!([far.x, far.y, far.z, near.w] if cell_range.x, cell_range.y, cell_range.z);
+    test_point!([far.x, far.y, near.z, far.w] if cell_range.x, cell_range.y, cell_range.w);
+    test_point!([far.x, near.y, far.z, far.w] if cell_range.x, cell_range.z, cell_range.w);
+    test_point!([near.x, far.y, far.z, far.w] if cell_range.y, cell_range.z, cell_range.w);
 
-    if
-        cell_range.x < nearest_range_sqr &&
-        cell_range.y < nearest_range_sqr &&
-        cell_range.z < nearest_range_sqr &&
-        cell_range.w < nearest_range_sqr
-    {
-        test_point![far.x, far.y, far.z, far.w];
-    }
+    test_point!([far.x, far.y, far.z, far.w] if cell_range.x, cell_range.y, cell_range.z, cell_range.w);
 
     (nearest_range_sqr, nearest_point, nearest_cell)
 }
 
+#[inline(always)]
+pub fn base_worley_4d_2point(point: Vector4<f64>, hasher: &PermutationTable) -> (Worley4DOutput, Worley4DOutput) {
+    let floor = point.floor();
+    let cell = floor.numcast().unwrap();
+    let frac = point - floor;
+
+    let mut nearest_cell1 = cell;
+    let mut nearest_point1 = get_point_4d(cell, hasher);
+    let mut nearest_range_sqr1 = point.range_squared(nearest_point1);
+    let mut nearest_cell2 = Vector4::zero();
+    let mut nearest_point2 = Vector4::zero();
+    let mut nearest_range_sqr2 = f64::MAX;
+
+    macro_rules! test_point(
+        ([$x:expr, $y:expr, $z:expr, $w:expr] if $($range:expr),+) => {
+            {
+                if $($range < nearest_range_sqr2) && + {
+                    let test_cell = Vector4::from([$x, $y, $z, $w]);
+                    let test_point = get_point_4d(test_cell, hasher);
+                    let test_range_sqr = point.range_squared(test_point);
+                    if test_range_sqr < nearest_range_sqr1 {
+                        nearest_range_sqr2 = nearest_range_sqr1;
+                        nearest_cell2 = nearest_cell1;
+                        nearest_point2 = nearest_point1;
+                        nearest_range_sqr1 = test_range_sqr;
+                        nearest_cell1 = test_cell;
+                        nearest_point1 = test_point;
+                    } else if test_range_sqr < nearest_range_sqr2 {
+                        nearest_range_sqr2 = test_range_sqr;
+                        nearest_cell2 = test_cell;
+                        nearest_point2 = test_point;
+                    }
+                }
+            }
+        }
+    );
+
+    let cell_range_min1 = frac.sqr();
+    let cell_range_pls1 = frac.n_minus(1.0).sqr() * -1.0;
+    let cell_range_min2 = (frac + 1.0).sqr();
+    let cell_range_pls2 = (frac.n_minus(1.0) + 1.0).sqr() * -1.0;
+
+    test_point!([cell.x - 1, cell.y, cell.z, cell.w] if cell_range_min1.x);
+    test_point!([cell.x, cell.y - 1, cell.z, cell.w] if cell_range_min1.y);
+    test_point!([cell.x, cell.y, cell.z - 1, cell.w] if cell_range_min1.z);
+    test_point!([cell.x, cell.y, cell.z, cell.w - 1] if cell_range_min1.w);
+    test_point!([cell.x + 1, cell.y, cell.z, cell.w] if cell_range_pls1.x);
+    test_point!([cell.x, cell.y + 1, cell.z, cell.w] if cell_range_pls1.y);
+    test_point!([cell.x, cell.y, cell.z + 1, cell.w] if cell_range_pls1.z);
+    test_point!([cell.x, cell.y, cell.z, cell.w + 1] if cell_range_pls1.w);
+
+    test_point!([cell.x - 1, cell.y - 1, cell.z, cell.w] if cell_range_min1.x, cell_range_min1.y);
+    test_point!([cell.x + 1, cell.y - 1, cell.z, cell.w] if cell_range_pls1.x, cell_range_min1.y);
+    test_point!([cell.x - 1, cell.y + 1, cell.z, cell.w] if cell_range_min1.x, cell_range_pls1.y);
+    test_point!([cell.x + 1, cell.y + 1, cell.z, cell.w] if cell_range_pls1.x, cell_range_pls1.y);
+    test_point!([cell.x - 1, cell.y, cell.z - 1, cell.w] if cell_range_min1.x, cell_range_min1.z);
+    test_point!([cell.x + 1, cell.y, cell.z - 1, cell.w] if cell_range_pls1.x, cell_range_min1.z);
+    test_point!([cell.x - 1, cell.y, cell.z + 1, cell.w] if cell_range_min1.x, cell_range_pls1.z);
+    test_point!([cell.x + 1, cell.y, cell.z + 1, cell.w] if cell_range_pls1.x, cell_range_pls1.z);
+    test_point!([cell.x - 1, cell.y, cell.z, cell.w - 1] if cell_range_min1.x, cell_range_min1.w);
+    test_point!([cell.x + 1, cell.y, cell.z, cell.w - 1] if cell_range_pls1.x, cell_range_min1.w);
+    test_point!([cell.x - 1, cell.y, cell.z, cell.w + 1] if cell_range_min1.x, cell_range_pls1.w);
+    test_point!([cell.x + 1, cell.y, cell.z, cell.w + 1] if cell_range_pls1.x, cell_range_pls1.w);
+    test_point!([cell.x, cell.y - 1, cell.z - 1, cell.w] if cell_range_min1.y, cell_range_min1.z);
+    test_point!([cell.x, cell.y + 1, cell.z - 1, cell.w] if cell_range_pls1.y, cell_range_min1.z);
+    test_point!([cell.x, cell.y - 1, cell.z + 1, cell.w] if cell_range_min1.y, cell_range_pls1.z);
+    test_point!([cell.x, cell.y + 1, cell.z + 1, cell.w] if cell_range_pls1.y, cell_range_pls1.z);
+    test_point!([cell.x, cell.y - 1, cell.z, cell.w - 1] if cell_range_min1.y, cell_range_min1.w);
+    test_point!([cell.x, cell.y + 1, cell.z, cell.w - 1] if cell_range_pls1.y, cell_range_min1.w);
+    test_point!([cell.x, cell.y - 1, cell.z, cell.w + 1] if cell_range_min1.y, cell_range_pls1.w);
+    test_point!([cell.x, cell.y + 1, cell.z, cell.w + 1] if cell_range_pls1.y, cell_range_pls1.w);
+
+    test_point!([cell.x - 1, cell.y - 1, cell.z - 1, cell.w - 1]
+        if cell_range_min1.x, cell_range_min1.y, cell_range_min1.z, cell_range_min1.w);
+    test_point!([cell.x + 1, cell.y - 1, cell.z - 1, cell.w - 1]
+        if cell_range_pls1.x, cell_range_min1.y, cell_range_min1.z, cell_range_min1.w);
+    test_point!([cell.x - 1, cell.y + 1, cell.z - 1, cell.w - 1]
+        if cell_range_min1.x, cell_range_pls1.y, cell_range_min1.z, cell_range_min1.w);
+    test_point!([cell.x + 1, cell.y + 1, cell.z - 1, cell.w - 1]
+        if cell_range_pls1.x, cell_range_pls1.y, cell_range_min1.z, cell_range_min1.w);
+    test_point!([cell.x - 1, cell.y - 1, cell.z + 1, cell.w - 1]
+        if cell_range_min1.x, cell_range_min1.y, cell_range_pls1.z, cell_range_min1.w);
+    test_point!([cell.x + 1, cell.y - 1, cell.z + 1, cell.w - 1]
+        if cell_range_pls1.x, cell_range_min1.y, cell_range_pls1.z, cell_range_min1.w);
+    test_point!([cell.x - 1, cell.y + 1, cell.z + 1, cell.w - 1]
+        if cell_range_min1.x, cell_range_pls1.y, cell_range_pls1.z, cell_range_min1.w);
+    test_point!([cell.x + 1, cell.y + 1, cell.z + 1, cell.w - 1]
+        if cell_range_pls1.x, cell_range_pls1.y, cell_range_pls1.z, cell_range_min1.w);
+    test_point!([cell.x - 1, cell.y - 1, cell.z - 1, cell.w + 1]
+        if cell_range_min1.x, cell_range_min1.y, cell_range_min1.z, cell_range_min1.w);
+    test_point!([cell.x + 1, cell.y - 1, cell.z - 1, cell.w + 1]
+        if cell_range_pls1.x, cell_range_min1.y, cell_range_min1.z, cell_range_min1.w);
+    test_point!([cell.x - 1, cell.y + 1, cell.z - 1, cell.w + 1]
+        if cell_range_min1.x, cell_range_pls1.y, cell_range_min1.z, cell_range_min1.w);
+    test_point!([cell.x + 1, cell.y + 1, cell.z - 1, cell.w + 1]
+        if cell_range_pls1.x, cell_range_pls1.y, cell_range_min1.z, cell_range_min1.w);
+    test_point!([cell.x - 1, cell.y - 1, cell.z + 1, cell.w + 1]
+        if cell_range_min1.x, cell_range_min1.y, cell_range_pls1.z, cell_range_min1.w);
+    test_point!([cell.x + 1, cell.y - 1, cell.z + 1, cell.w + 1]
+        if cell_range_pls1.x, cell_range_min1.y, cell_range_pls1.z, cell_range_min1.w);
+    test_point!([cell.x - 1, cell.y + 1, cell.z + 1, cell.w + 1]
+        if cell_range_min1.x, cell_range_pls1.y, cell_range_pls1.z, cell_range_min1.w);
+    test_point!([cell.x + 1, cell.y + 1, cell.z + 1, cell.w + 1]
+        if cell_range_pls1.x, cell_range_pls1.y, cell_range_pls1.z, cell_range_min1.w);
+
+    test_point!([cell.x - 2, cell.y, cell.z, cell.w] if cell_range_min2.x);
+    test_point!([cell.x + 2, cell.y, cell.z, cell.w] if cell_range_pls2.x);
+    test_point!([cell.x, cell.y - 2, cell.z, cell.w] if cell_range_min2.y);
+    test_point!([cell.x, cell.y + 2, cell.z, cell.w] if cell_range_pls2.y);
+    test_point!([cell.x, cell.y, cell.z - 2, cell.w] if cell_range_min2.z);
+    test_point!([cell.x, cell.y, cell.z + 2, cell.w] if cell_range_pls2.z);
+    test_point!([cell.x, cell.y, cell.z, cell.w - 2] if cell_range_min2.w);
+    test_point!([cell.x, cell.y, cell.z, cell.w + 2] if cell_range_pls2.w);
+
+    test_point!([cell.x - 2, cell.y - 1, cell.z, cell.w] if cell_range_min2.x, cell_range_min1.y);
+    test_point!([cell.x - 2, cell.y + 1, cell.z, cell.w] if cell_range_min2.x, cell_range_pls1.y);
+    test_point!([cell.x - 2, cell.y, cell.z - 1, cell.w] if cell_range_min2.x, cell_range_min1.z);
+    test_point!([cell.x - 2, cell.y, cell.z + 1, cell.w] if cell_range_min2.x, cell_range_pls1.z);
+    test_point!([cell.x - 2, cell.y, cell.z, cell.w - 1] if cell_range_min2.x, cell_range_min1.w);
+    test_point!([cell.x - 2, cell.y, cell.z, cell.w + 1] if cell_range_min2.x, cell_range_pls1.w);
+    test_point!([cell.x + 2, cell.y - 1, cell.z, cell.w] if cell_range_pls2.x, cell_range_min1.y);
+    test_point!([cell.x + 2, cell.y + 1, cell.z, cell.w] if cell_range_pls2.x, cell_range_pls1.y);
+    test_point!([cell.x + 2, cell.y, cell.z - 1, cell.w] if cell_range_pls2.x, cell_range_min1.z);
+    test_point!([cell.x + 2, cell.y, cell.z + 1, cell.w] if cell_range_pls2.x, cell_range_pls1.z);
+    test_point!([cell.x + 2, cell.y, cell.z, cell.w - 1] if cell_range_pls2.x, cell_range_min1.w);
+    test_point!([cell.x + 2, cell.y, cell.z, cell.w + 1] if cell_range_pls2.x, cell_range_pls1.w);
+
+    test_point!([cell.x - 1, cell.y - 2, cell.z, cell.w] if cell_range_min1.x, cell_range_min2.y);
+    test_point!([cell.x + 1, cell.y - 2, cell.z, cell.w] if cell_range_pls1.x, cell_range_min2.y);
+    test_point!([cell.x, cell.y - 2, cell.z - 1, cell.w] if cell_range_min1.z, cell_range_min2.y);
+    test_point!([cell.x, cell.y - 2, cell.z + 1, cell.w] if cell_range_pls1.z, cell_range_min2.y);
+    test_point!([cell.x, cell.y - 2, cell.z, cell.w - 1] if cell_range_min1.w, cell_range_min2.y);
+    test_point!([cell.x, cell.y - 2, cell.z, cell.w + 1] if cell_range_pls1.w, cell_range_min2.y);
+    test_point!([cell.x - 1, cell.y + 2, cell.z, cell.w] if cell_range_min1.x, cell_range_pls2.y);
+    test_point!([cell.x + 1, cell.y + 2, cell.z, cell.w] if cell_range_pls1.x, cell_range_pls2.y);
+    test_point!([cell.x, cell.y + 2, cell.z - 1, cell.w] if cell_range_min1.z, cell_range_pls2.y);
+    test_point!([cell.x, cell.y + 2, cell.z + 1, cell.w] if cell_range_pls1.z, cell_range_pls2.y);
+    test_point!([cell.x, cell.y + 2, cell.z, cell.w - 1] if cell_range_min1.w, cell_range_pls2.y);
+    test_point!([cell.x, cell.y + 2, cell.z, cell.w + 1] if cell_range_pls1.w, cell_range_pls2.y);
+
+    test_point!([cell.x - 1, cell.y, cell.z - 2, cell.w] if cell_range_min1.x, cell_range_min2.z);
+    test_point!([cell.x + 1, cell.y, cell.z - 2, cell.w] if cell_range_pls1.x, cell_range_min2.z);
+    test_point!([cell.x, cell.y - 1, cell.z - 2, cell.w] if cell_range_min1.y, cell_range_min2.z);
+    test_point!([cell.x, cell.y + 1, cell.z - 2, cell.w] if cell_range_pls1.y, cell_range_min2.z);
+    test_point!([cell.x, cell.y, cell.z - 2, cell.w - 1] if cell_range_min1.w, cell_range_min2.z);
+    test_point!([cell.x, cell.y, cell.z - 2, cell.w + 1] if cell_range_pls1.w, cell_range_min2.z);
+    test_point!([cell.x - 1, cell.y, cell.z + 2, cell.w] if cell_range_min1.x, cell_range_pls2.z);
+    test_point!([cell.x + 1, cell.y, cell.z + 2, cell.w] if cell_range_pls1.x, cell_range_pls2.z);
+    test_point!([cell.x, cell.y - 1, cell.z + 2, cell.w] if cell_range_min1.y, cell_range_pls2.z);
+    test_point!([cell.x, cell.y + 1, cell.z + 2, cell.w] if cell_range_pls1.y, cell_range_pls2.z);
+    test_point!([cell.x, cell.y, cell.z + 2, cell.w - 1] if cell_range_min1.w, cell_range_pls2.z);
+    test_point!([cell.x, cell.y, cell.z + 2, cell.w + 1] if cell_range_pls1.w, cell_range_pls2.z);
+
+    test_point!([cell.x - 1, cell.y, cell.z, cell.w - 2] if cell_range_min2.w, cell_range_min1.x);
+    test_point!([cell.x + 1, cell.y, cell.z, cell.w - 2] if cell_range_min2.w, cell_range_pls1.x);
+    test_point!([cell.x, cell.y - 1, cell.z, cell.w - 2] if cell_range_min2.w, cell_range_min1.y);
+    test_point!([cell.x, cell.y + 1, cell.z, cell.w - 2] if cell_range_min2.w, cell_range_pls1.y);
+    test_point!([cell.x, cell.y, cell.z - 1, cell.w - 2] if cell_range_min2.w, cell_range_min1.z);
+    test_point!([cell.x, cell.y, cell.z + 1, cell.w - 2] if cell_range_min2.w, cell_range_pls1.z);
+    test_point!([cell.x - 1, cell.y, cell.z, cell.w + 2] if cell_range_pls2.w, cell_range_min1.x);
+    test_point!([cell.x + 1, cell.y, cell.z, cell.w + 2] if cell_range_pls2.w, cell_range_pls1.x);
+    test_point!([cell.x, cell.y - 1, cell.z, cell.w + 2] if cell_range_pls2.w, cell_range_min1.y);
+    test_point!([cell.x, cell.y + 1, cell.z, cell.w + 2] if cell_range_pls2.w, cell_range_pls1.y);
+    test_point!([cell.x, cell.y, cell.z - 1, cell.w + 2] if cell_range_pls2.w, cell_range_min1.z);
+    test_point!([cell.x, cell.y, cell.z + 1, cell.w + 2] if cell_range_pls2.w, cell_range_pls1.z);
+
+    (
+        (nearest_range_sqr1, nearest_point1, nearest_cell1),
+        (nearest_range_sqr2, nearest_point2, nearest_cell2)
+    )
+}
+
 #[inline]
 pub fn worley_2d_range(point: Vector2<f64>, hasher: &PermutationTable) -> f64 {
-    let (range_sqr, _, _) = base_worley_2d(point, hasher);
+    let (range_sqr, _, _) = base_worley_2d_1point(point, hasher);
     range_sqr.sqrt()
 }
 
 #[inline]
 pub fn worley_2d_range_sqr(point: Vector2<f64>, hasher: &PermutationTable) -> f64 {
-    let (range_sqr, _, _) = base_worley_2d(point, hasher);
+    let (range_sqr, _, _) = base_worley_2d_1point(point, hasher);
     range_sqr
 }
 
 #[inline]
 pub fn worley_2d_value(point: Vector2<f64>, hasher: &PermutationTable) -> f64 {
-    let (_, _, cell) = base_worley_2d(point, hasher);
+    let (_, _, cell) = base_worley_2d_1point(point, hasher);
     hasher.hash_2d(cell.into()) as f64 / 127.5 - 1.0
+}
+
+#[inline]
+pub fn worley_2d_border(point: Vector2<f64>, hasher: &PermutationTable) -> f64 {
+    let ((range_sqr1, _, _), (range_sqr2, _, _)) = base_worley_2d_2point(point, hasher);
+    range_sqr2 - range_sqr1
 }
 
 #[inline]
@@ -1046,6 +1344,12 @@ pub fn worley_3d_value(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
 }
 
 #[inline]
+pub fn worley_3d_border(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
+    let ((range_sqr1, _, _), (range_sqr2, _, _)) = base_worley_3d_2point(point, hasher);
+    range_sqr2 - range_sqr1
+}
+
+#[inline]
 pub fn worley_4d_range(point: Vector4<f64>, hasher: &PermutationTable) -> f64 {
     let (range_sqr, _, _) = base_worley_4d(point, hasher);
     range_sqr.sqrt()
@@ -1061,4 +1365,10 @@ pub fn worley_4d_range_sqr(point: Vector4<f64>, hasher: &PermutationTable) -> f6
 pub fn worley_4d_value(point: Vector4<f64>, hasher: &PermutationTable) -> f64 {
     let (_, _, cell) = base_worley_4d(point, hasher);
     hasher.hash_4d(cell.into()) as f64 / 127.5 - 1.0
+}
+
+#[inline]
+pub fn worley_4d_border(point: Vector4<f64>, hasher: &PermutationTable) -> f64 {
+    let ((range_sqr1, _, _), (range_sqr2, _, _)) = base_worley_4d_2point(point, hasher);
+    range_sqr2 - range_sqr1
 }

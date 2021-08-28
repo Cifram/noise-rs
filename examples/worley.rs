@@ -23,10 +23,13 @@ fn main() {
     output(|point| worley_2d_value(point.into(), &hasher), "worley 2d value.png");
     output(|point| worley_2d_range(point.into(), &hasher), "worley 2d range.png");
     output(|point| worley_2d_range_sqr(point.into(), &hasher), "worley 2d range squared.png");
+    output(|point| worley_2d_border(point.into(), &hasher), "worley 2d border.png");
     output(|point| worley_3d_value(point.into(), &hasher), "worley 3d value.png");
     output(|point| worley_3d_range(point.into(), &hasher), "worley 3d range.png");
     output(|point| worley_3d_range_sqr(point.into(), &hasher), "worley 3d range squared.png");
+    output(|point| worley_3d_border(point.into(), &hasher), "worley 3d border.png");
     output(|point| worley_4d_value(point.into(), &hasher), "worley 4d value.png");
     output(|point| worley_4d_range(point.into(), &hasher), "worley 4d range.png");
     output(|point| worley_4d_range_sqr(point.into(), &hasher), "worley 4d range squared.png");
+    output(|point| worley_4d_border(point.into(), &hasher), "worley 4d border.png");
 }

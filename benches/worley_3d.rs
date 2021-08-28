@@ -4,7 +4,7 @@ extern crate noise;
 
 use criterion::{black_box, Criterion};
 use noise::{
-    core::worley::{worley_3d_value, worley_3d_range, worley_3d_range_sqr},
+    core::worley::{worley_3d_value, worley_3d_range, worley_3d_range_sqr, worley_3d_border},
     math::vectors::Vector3,
     permutationtable::PermutationTable,
 };
@@ -13,11 +13,13 @@ criterion_group!(bench_worley_3d,
     bench_worley3d_euclidean_value,
     bench_worley3d_euclidean_range,
     bench_worley3d_squared_range,
+    bench_worley3d_border,
 );
 criterion_group!(bench_worley_3d_64x64,
     bench_worley3d_euclidean_value_64x64,
     bench_worley3d_euclidean_range_64x64,
     bench_worley3d_squared_range_64x64,
+    bench_worley3d_border_64x64,
 );
 criterion_main!(bench_worley_3d, bench_worley_3d_64x64);
 
@@ -39,6 +41,13 @@ fn bench_worley3d_squared_range(c: &mut Criterion) {
     let hasher = PermutationTable::new(0);
     c.bench_function("worley 3d squared distance", |b| {
         b.iter(|| worley_3d_range_sqr(black_box(Vector3::new(42.0f64, 37.0, 26.0)), &hasher))
+    });
+}
+
+fn bench_worley3d_border(c: &mut Criterion) {
+    let hasher = PermutationTable::new(0);
+    c.bench_function("worley 3d border", |b| {
+        b.iter(|| worley_3d_border(black_box(Vector3::new(42.0f64, 37.0, 26.0)), &hasher))
     });
 }
 
@@ -75,6 +84,19 @@ fn bench_worley3d_squared_range_64x64(c: &mut Criterion) {
             for y in 0i8..64 {
                 for x in 0i8..64 {
                     black_box(worley_3d_range_sqr(Vector3::new(x as f64, y as f64, x as f64), &hasher));
+                }
+            }
+        })
+    });
+}
+
+fn bench_worley3d_border_64x64(c: &mut Criterion) {
+    let hasher = PermutationTable::new(0);
+    c.bench_function("worley 3d border (64x64)", |b| {
+        b.iter(|| {
+            for y in 0i8..64 {
+                for x in 0i8..64 {
+                    black_box(worley_3d_border(Vector3::new(x as f64, y as f64, x as f64), &hasher));
                 }
             }
         })
