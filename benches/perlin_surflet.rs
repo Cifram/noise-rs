@@ -50,7 +50,7 @@ fn bench_perlin_surflet2_64x64(c: &mut Criterion) {
         b.iter(|| {
             for y in 0i8..64 {
                 for x in 0i8..64 {
-                    perlin_surflet_2d(black_box(Vector2::new(x as f64, y as f64)), &hasher);
+                    black_box(perlin_surflet_2d(Vector2::new(x as f64, y as f64), &hasher));
                 }
             }
         })
@@ -63,7 +63,7 @@ fn bench_perlin_surflet3_64x64(c: &mut Criterion) {
         b.iter(|| {
             for y in 0i8..64 {
                 for x in 0i8..64 {
-                    perlin_surflet_3d(black_box(Vector3::new(x as f64, y as f64, x as f64)), &hasher);
+                    black_box(perlin_surflet_3d(Vector3::new(x as f64, y as f64, x as f64), &hasher));
                 }
             }
         })
@@ -76,7 +76,7 @@ fn bench_perlin_surflet4_64x64(c: &mut Criterion) {
         b.iter(|| {
             for y in 0i8..64 {
                 for x in 0i8..64 {
-                    perlin_surflet_4d(black_box(Vector4::new(x as f64, y as f64, x as f64, y as f64)), &hasher);
+                    black_box(perlin_surflet_4d(Vector4::new(x as f64, y as f64, x as f64, y as f64), &hasher));
                 }
             }
         })
