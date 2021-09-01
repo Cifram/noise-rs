@@ -185,6 +185,33 @@ where
     }
 }
 
+impl<SourceModule> PlaneMapBuilder<SourceModule, 2>
+where
+    SourceModule: NoiseFn<f64, 2>,
+{
+    pub fn new_2d(source_module: SourceModule) -> Self {
+        Self::new(source_module)
+    }
+}
+
+impl<SourceModule> PlaneMapBuilder<SourceModule, 3>
+where
+    SourceModule: NoiseFn<f64, 3>,
+{
+    pub fn new_3d(source_module: SourceModule) -> Self {
+        Self::new(source_module)
+    }
+}
+
+impl<SourceModule> PlaneMapBuilder<SourceModule, 4>
+where
+    SourceModule: NoiseFn<f64, 4>,
+{
+    pub fn new_4d(source_module: SourceModule) -> Self {
+        Self::new(source_module)
+    }
+}
+
 impl<SourceModule, const DIM: usize> PlaneMapBuilder<SourceModule, DIM>
 where
     SourceModule: NoiseFn<f64, DIM>,
