@@ -14,10 +14,12 @@ macro_rules! vector_type {
 
         impl<T> $type_name<T> {
             // Create a vector from the elements `x, y`.
+            #[inline]
             pub fn new($($dim: T),+) -> Self {
                 Self { $($dim),+ }
             }
 
+            #[inline]
             pub fn numcast<D>(self) -> Option<$type_name<D>>
             where
                 T: NumCast,
@@ -33,10 +35,12 @@ macro_rules! vector_type {
         where
             T: Copy,
         {
+            #[inline]
             pub fn broadcast(value: T) -> Self {
                 Self { $($dim: value),+ }
             }
 
+            #[inline]
             pub fn zero() -> Self
             where
                 T: Zero,
@@ -44,6 +48,7 @@ macro_rules! vector_type {
                 Self::broadcast(T::zero())
             }
 
+            #[inline]
             pub fn one() -> Self
             where
                 T: One,
@@ -51,10 +56,12 @@ macro_rules! vector_type {
                 Self::broadcast(T::one())
             }
 
+            #[inline]
             pub fn into_array(&self) -> [T; $dim_count] {
                 [$(self.$dim),+]
             }
 
+            #[inline]
             pub fn dot(self, other: Self) -> T
             where
                 T: Zero + AddAssign + Mul<Output = T>
@@ -64,6 +71,7 @@ macro_rules! vector_type {
                 result
             }
 
+            #[inline]
             pub fn magnitude_squared(self) -> T
             where
                 T: Copy + Zero + AddAssign + Mul<Output = T>,
@@ -71,6 +79,7 @@ macro_rules! vector_type {
                 self.dot(self)
             }
 
+            #[inline]
             pub fn magnitude(self) -> T
             where
                 T: Zero + AddAssign + Mul + Real,
@@ -78,6 +87,7 @@ macro_rules! vector_type {
                 self.magnitude_squared().sqrt()
             }
 
+            #[inline]
             pub fn range_squared(self, other: Self) -> T
             where
                 T: Zero + AddAssign + Sub + Mul + Num,
@@ -85,6 +95,7 @@ macro_rules! vector_type {
                 (self - other).magnitude_squared()
             }
 
+            #[inline]
             pub fn range(self, other: Self) -> T
             where
                 T: Zero + AddAssign + Mul + Real,
@@ -92,6 +103,7 @@ macro_rules! vector_type {
                 (self - other).magnitude()
             }
 
+            #[inline]
             pub fn apply<F>(&mut self, f: F)
             where
                 F: Fn(T) -> T,
@@ -99,6 +111,7 @@ macro_rules! vector_type {
                 $(self.$dim = f(self.$dim);)+
             }
 
+            #[inline]
             pub fn min(self, other: Self) -> Self
             where
                 T: Ord,
@@ -108,6 +121,7 @@ macro_rules! vector_type {
                 }
             }
 
+            #[inline]
             pub fn max(self, other: Self) -> Self
             where
                 T: Ord,
@@ -117,6 +131,7 @@ macro_rules! vector_type {
                 }
             }
 
+            #[inline]
             pub fn ceil(self) -> Self
             where
                 T: Real,
@@ -126,6 +141,7 @@ macro_rules! vector_type {
                 }
             }
 
+            #[inline]
             pub fn floor_to_isize(self) -> $type_name<isize>
             where
                 T: Real,
@@ -139,6 +155,7 @@ macro_rules! vector_type {
                 }
             }
 
+            #[inline]
             pub fn sum(self) -> T
             where
                 T: Zero + AddAssign,
@@ -148,6 +165,7 @@ macro_rules! vector_type {
                 result
             }
 
+            #[inline]
             pub fn sqrt(self) -> Self
             where
                 T: Real,
@@ -157,6 +175,7 @@ macro_rules! vector_type {
                 }
             }
 
+            #[inline]
             pub fn sqr(self) -> Self
             where
                 T: Mul<Output = T>,
@@ -166,6 +185,7 @@ macro_rules! vector_type {
                 }
             }
 
+            #[inline]
             pub fn n_minus(self, n: T) -> Self
             where
                 T: One + Sub<Output = T>,
@@ -175,6 +195,7 @@ macro_rules! vector_type {
                 }
             }
 
+            #[inline]
             pub fn map<F, U>(self, f: F) -> $type_name<U>
             where
                 F: Fn(T) -> U,
@@ -189,6 +210,7 @@ macro_rules! vector_type {
         where
             T: PartialEq,
         {
+            #[inline]
             fn eq(&self, other: &Self) -> bool {
                 $(self.$dim.eq(&other.$dim)) &&+
             }
@@ -200,6 +222,7 @@ macro_rules! vector_type {
         {
             type Output = Self;
 
+            #[inline]
             fn add(self, rhs: Self) -> Self::Output {
                 Self {
                     $($dim: self.$dim + rhs.$dim,)+
@@ -213,6 +236,7 @@ macro_rules! vector_type {
         {
             type Output = Self;
 
+            #[inline]
             fn add(self, rhs: T) -> Self::Output {
                 Self {
                     $($dim: self.$dim + rhs,)+
@@ -224,6 +248,7 @@ macro_rules! vector_type {
         where
             T: AddAssign,
         {
+            #[inline]
             fn add_assign(&mut self, rhs: Self) {
                 $(self.$dim += rhs.$dim;)+
             }
@@ -233,6 +258,7 @@ macro_rules! vector_type {
         where
             T: Copy + AddAssign,
         {
+            #[inline]
             fn add_assign(&mut self, rhs: T) {
                 $(self.$dim += rhs;)+
             }
@@ -244,6 +270,7 @@ macro_rules! vector_type {
         {
             type Output = Self;
 
+            #[inline]
             fn sub(self, rhs: Self) -> Self::Output {
                 Self {
                     $($dim: self.$dim - rhs.$dim,)+
@@ -257,6 +284,7 @@ macro_rules! vector_type {
         {
             type Output = Self;
 
+            #[inline]
             fn sub(self, rhs: T) -> Self::Output {
                 Self {
                     $($dim: self.$dim - rhs,)+
@@ -268,6 +296,7 @@ macro_rules! vector_type {
         where
             T: SubAssign,
         {
+            #[inline]
             fn sub_assign(&mut self, rhs: Self) {
                 $(self.$dim -= rhs.$dim;)+
             }
@@ -277,6 +306,7 @@ macro_rules! vector_type {
         where
             T: Copy + SubAssign,
         {
+            #[inline]
             fn sub_assign(&mut self, rhs: T) {
                 $(self.$dim -= rhs;)+
             }
@@ -288,6 +318,7 @@ macro_rules! vector_type {
         {
             type Output = Self;
 
+            #[inline]
             fn mul(self, rhs: T) -> Self::Output {
                 Self {
                     $($dim: self.$dim * rhs,)+
@@ -299,6 +330,7 @@ macro_rules! vector_type {
         where
             T: MulAssign + Copy,
         {
+            #[inline]
             fn mul_assign(&mut self, rhs: T) {
                 $(self.$dim *= rhs;)+
             }
@@ -310,6 +342,7 @@ macro_rules! vector_type {
         {
             type Output = Self;
 
+            #[inline]
             fn div(self, rhs: T) -> Self::Output {
                 Self {
                     $($dim: self.$dim / rhs,)+
@@ -321,24 +354,28 @@ macro_rules! vector_type {
         where
             T: DivAssign + Copy,
         {
+            #[inline]
             fn div_assign(&mut self, rhs: T) {
                 $(self.$dim /= rhs;)+
             }
         }
 
         impl<T> From<$type_name<T>> for ($(replace_expr!($dim T)),+) {
+            #[inline]
             fn from(vector: $type_name<T>) -> Self {
                 ($(vector.$dim),+)
             }
         }
 
         impl<T> From<$type_name<T>> for [T; $dim_count] {
+            #[inline]
             fn from(vector: $type_name<T>) -> Self {
                 [$(vector.$dim),+]
             }
         }
 
         impl<T> From<($(replace_expr!($dim T)),+)> for $type_name<T> {
+            #[inline]
             fn from(src: ($(replace_expr!($dim T)),+)) -> Self {
                 let ($($dim),+) = src;
                 Self {
@@ -351,6 +388,7 @@ macro_rules! vector_type {
         where
             T: Copy + Num,
         {
+            #[inline]
             fn from(array: [T; $dim_count]) -> Self {
                 Self {
                     $($dim: array[$dim_index],)+
