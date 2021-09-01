@@ -147,8 +147,8 @@ impl Seedable for Fbm {
 impl NoiseFn<f64, 2> for Fbm {
     fn get(&self, point: [f64; 2]) -> f64 {
         fbm_2d(
-            point, self.frequency, self.lacunarity, self.persistence, self.octaves,
-            |point, octave| self.sources[octave].get(point)
+            point.into(), self.frequency, self.lacunarity, self.persistence, self.octaves,
+            |point, octave| self.sources[octave].get(point.into())
         )
     }
 }
@@ -157,8 +157,8 @@ impl NoiseFn<f64, 2> for Fbm {
 impl NoiseFn<f64, 3> for Fbm {
     fn get(&self, point: [f64; 3]) -> f64 {
         fbm_3d(
-            point, self.frequency, self.lacunarity, self.persistence, self.octaves,
-            |point, octave| self.sources[octave].get(point)
+            point.into(), self.frequency, self.lacunarity, self.persistence, self.octaves,
+            |point, octave| self.sources[octave].get(point.into())
         )
     }
 }
@@ -167,8 +167,8 @@ impl NoiseFn<f64, 3> for Fbm {
 impl NoiseFn<f64, 4> for Fbm {
     fn get(&self, point: [f64; 4]) -> f64 {
         fbm_4d(
-            point, self.frequency, self.lacunarity, self.persistence, self.octaves,
-            |point, octave| self.sources[octave].get(point)
+            point.into(), self.frequency, self.lacunarity, self.persistence, self.octaves,
+            |point, octave| self.sources[octave].get(point.into())
         )
     }
 }
