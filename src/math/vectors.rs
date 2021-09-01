@@ -153,6 +153,24 @@ macro_rules! vector_type {
                 }
             }
 
+            pub fn sqr(self) -> Self
+            where
+                T: Mul<Output = T>,
+            {
+                $type_name {
+                    $($dim: self.$dim * self.$dim,)+
+                }
+            }
+
+            pub fn n_minus(self, n: T) -> Self
+            where
+                T: One + Sub<Output = T>,
+            {
+                $type_name {
+                    $($dim: n - self.$dim,)+
+                }
+            }
+
             pub fn map<F, U>(self, f: F) -> $type_name<U>
             where
                 F: Fn(T) -> U,

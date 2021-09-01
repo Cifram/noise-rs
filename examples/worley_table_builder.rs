@@ -16,8 +16,8 @@ where
 		for y in 0..size {
 			if filter(x, y) {
 				result.push((
-					(x as f64 * inc - 0.5) * 0.9,
-					(y as f64 * inc - 0.5) * 0.9,
+					(x as f64 * inc) * 0.9 + 0.05,
+					(y as f64 * inc) * 0.9 + 0.05,
 				));
 			}
 		}
@@ -36,9 +36,9 @@ where
 			for z in 0..size {
 				if filter(x, y, z) {
 					result.push((
-						(x as f64 * inc - 0.5) * 0.9,
-						(y as f64 * inc - 0.5) * 0.9,
-						(z as f64 * inc - 0.5) * 0.9,
+						(x as f64 * inc) * 0.9 + 0.05,
+						(y as f64 * inc) * 0.9 + 0.05,
+						(z as f64 * inc) * 0.9 + 0.05,
 					));
 				}
 			}
@@ -59,10 +59,10 @@ where
 				for w in 0..size {
 					if filter(x, y, z, w) {
 						result.push((
-							(x as f64 * inc - 0.5) * 0.9,
-							(y as f64 * inc - 0.5) * 0.9,
-							(z as f64 * inc - 0.5) * 0.9,
-							(w as f64 * inc - 0.5) * 0.9,
+							(x as f64 * inc) * 0.9 + 0.05,
+							(y as f64 * inc) * 0.9 + 0.05,
+							(z as f64 * inc) * 0.9 + 0.05,
+							(w as f64 * inc) * 0.9 + 0.05,
 						));
 					}
 				}
