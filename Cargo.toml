@@ -77,6 +77,10 @@ name = "fbm"
 required-features = ["image"]
 
 [[example]]
+name = "fbm_ridged"
+required-features = ["image"]
+
+[[example]]
 name = "open_simplex"
 required-features = ["image"]
 

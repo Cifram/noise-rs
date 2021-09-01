@@ -7,167 +7,121 @@ use crate::{
     permutationtable::PermutationTable,
 };
 
-pub fn fbm_2d<F>(point: Vector2<f64>, frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F) -> f64
-where
-    F: Fn(Vector2<f64>, usize) -> f64
-{
-    let mut point = point * frequency;
-    let mut amplitude = 1.0;
-    let mut result = 0.0;
-    for octave in 0..octaves {
-        result += noise_fn(point, octave) * amplitude;
-        point *= lacunarity;
-        amplitude *= persistence;
+macro_rules! fbm(
+    ($name:ident, $vector_type:ident) => {
+        pub fn $name<F>(point: $vector_type<f64>, frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F) -> f64
+        where
+            F: Fn($vector_type<f64>, usize) -> f64
+        {
+            let mut point = point * frequency;
+            let mut amplitude = 1.0;
+            let mut result = 0.0;
+            for octave in 0..octaves {
+                result += noise_fn(point, octave) * amplitude;
+                point *= lacunarity;
+                amplitude *= persistence;
+            }
+            result
+        }
     }
-    result
-}
+);
 
-pub fn fbm_3d<F>(point: Vector3<f64>, frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F) -> f64
-where
-    F: Fn(Vector3<f64>, usize) -> f64
-{
-    let mut point = point * frequency;
-    let mut amplitude = 1.0;
-    let mut result = 0.0;
-    for octave in 0..octaves {
-        result += noise_fn(point, octave) * amplitude;
-        point *= lacunarity;
-        amplitude *= persistence;
+fbm!(fbm_2d, Vector2);
+fbm!(fbm_3d, Vector3);
+fbm!(fbm_4d, Vector4);
+
+macro_rules! fbm_weighted(
+    ($name:ident, $vector_type:ident) => {
+        pub fn $name<F>(
+            point: $vector_type<f64>,
+            frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F
+        ) -> f64
+        where
+            F: Fn($vector_type<f64>, f64, usize) -> (f64, f64)
+        {
+            let mut point = point * frequency;
+            let mut amplitude = 1.0;
+            let mut result = 0.0;
+            let mut weight = 1.0;
+            for octave in 0..octaves {
+                let (signal, new_weight) = noise_fn(point, weight, octave);
+                result += signal * amplitude;
+                weight = new_weight;
+                point *= lacunarity;
+                amplitude *= persistence;
+            }
+            result
+        }
     }
-    result
-}
+);
 
-pub fn fbm_4d<F>(point: Vector4<f64>, frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F) -> f64
-where
-    F: Fn(Vector4<f64>, usize) -> f64
-{
-    let mut point = point * frequency;
-    let mut amplitude = 1.0;
-    let mut result = 0.0;
-    for octave in 0..octaves {
-        result += noise_fn(point, octave) * amplitude;
-        point *= lacunarity;
-        amplitude *= persistence;
+fbm_weighted!(fbm_weighted_2d, Vector2);
+fbm_weighted!(fbm_weighted_3d, Vector3);
+fbm_weighted!(fbm_weighted_4d, Vector4);
+
+macro_rules! fbm_ridged(
+    ($name:ident, $vector_type:ident, $fbm_fn:ident) => {
+        pub fn $name<F>(
+            point: $vector_type<f64>,
+            frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F
+        ) -> f64
+        where
+            F: Fn($vector_type<f64>, usize) -> f64
+        {
+            $fbm_fn(point, frequency, lacunarity, persistence, octaves, |point, weight, octave| {
+                let mut signal = noise_fn(point, octave);
+                signal = signal.abs();
+                signal = 1.0 - signal;
+                signal *= signal;
+                signal *= weight;
+                let mut weight = signal / 2.0;
+                weight = weight.clamp(0.0, 1.0);
+                (signal, weight)
+            }) * 2.0 / (2.0 - 0.5f64.powi(octaves as i32 - 1)) - 1.0
+        }
     }
-    result
-}
+);
 
-pub fn fbm_perlin_2d(
-    point: Vector2<f64>,
-    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
-) -> f64 {
-    fbm_2d(
-        point, frequency, lacunarity, persistence, octaves,
-        |point, octave| perlin_2d_variant(point.into(), octave as isize, hasher)
-    )
-}
+fbm_ridged!(fbm_ridged_2d, Vector2, fbm_weighted_2d);
+fbm_ridged!(fbm_ridged_3d, Vector3, fbm_weighted_3d);
+fbm_ridged!(fbm_ridged_4d, Vector4, fbm_weighted_4d);
 
-pub fn fbm_perlin_3d(
-    point: Vector3<f64>,
-    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
-) -> f64 {
-    fbm_3d(
-        point, frequency, lacunarity, persistence, octaves,
-        |point, octave| perlin_3d_variant(point.into(), octave as isize, hasher)
-    )
-}
+macro_rules! specialized_fbm(
+    ($name:ident, $vector_type:ident, $fbm_fn:ident, $noise_fn:ident) => {
+        pub fn $name(
+            point: $vector_type<f64>,
+            frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
+        ) -> f64 {
+            $fbm_fn(
+                point, frequency, lacunarity, persistence, octaves,
+                |point, octave| $noise_fn(point.into(), octave as isize, hasher)
+            )
+        }
+    }
+);
 
-pub fn fbm_perlin_4d(
-    point: Vector4<f64>,
-    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
-) -> f64 {
-    fbm_4d(
-        point, frequency, lacunarity, persistence, octaves,
-        |point, octave| perlin_4d_variant(point.into(), octave as isize, hasher)
-    )
-}
+specialized_fbm!(fbm_perlin_2d, Vector2, fbm_2d, perlin_2d_variant);
+specialized_fbm!(fbm_perlin_3d, Vector3, fbm_3d, perlin_3d_variant);
+specialized_fbm!(fbm_perlin_4d, Vector4, fbm_4d, perlin_4d_variant);
+specialized_fbm!(fbm_open_simplex_2d, Vector2, fbm_2d, open_simplex_2d_variant);
+specialized_fbm!(fbm_open_simplex_3d, Vector3, fbm_3d, open_simplex_3d_variant);
+specialized_fbm!(fbm_open_simplex_4d, Vector4, fbm_4d, open_simplex_4d_variant);
+specialized_fbm!(fbm_perlin_surflet_2d, Vector2, fbm_2d, perlin_surflet_2d_variant);
+specialized_fbm!(fbm_perlin_surflet_3d, Vector3, fbm_3d, perlin_surflet_3d_variant);
+specialized_fbm!(fbm_perlin_surflet_4d, Vector4, fbm_4d, perlin_surflet_4d_variant);
+specialized_fbm!(fbm_simplex_2d, Vector2, fbm_2d, simplex_2d_variant);
+specialized_fbm!(fbm_simplex_3d, Vector3, fbm_3d, simplex_3d_variant);
+specialized_fbm!(fbm_simplex_4d, Vector4, fbm_4d, simplex_4d_variant);
 
-pub fn fbm_open_simplex_2d(
-    point: Vector2<f64>,
-    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
-) -> f64 {
-    fbm_2d(
-        point, frequency, lacunarity, persistence, octaves,
-        |point, octave| open_simplex_2d_variant(point.into(), octave as isize, hasher)
-    )
-}
-
-pub fn fbm_open_simplex_3d(
-    point: Vector3<f64>,
-    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
-) -> f64 {
-    fbm_3d(
-        point, frequency, lacunarity, persistence, octaves,
-        |point, octave| open_simplex_3d_variant(point.into(), octave as isize, hasher)
-    )
-}
-
-pub fn fbm_open_simplex_4d(
-    point: Vector4<f64>,
-    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
-) -> f64 {
-    fbm_4d(
-        point, frequency, lacunarity, persistence, octaves,
-        |point, octave| open_simplex_4d_variant(point.into(), octave as isize, hasher)
-    )
-}
-
-pub fn fbm_perlin_surflet_2d(
-    point: Vector2<f64>,
-    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
-) -> f64 {
-    fbm_2d(
-        point, frequency, lacunarity, persistence, octaves,
-        |point, octave| perlin_surflet_2d_variant(point.into(), octave as isize, hasher)
-    )
-}
-
-pub fn fbm_perlin_surflet_3d(
-    point: Vector3<f64>,
-    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
-) -> f64 {
-    fbm_3d(
-        point, frequency, lacunarity, persistence, octaves,
-        |point, octave| perlin_surflet_3d_variant(point.into(), octave as isize, hasher)
-    )
-}
-
-pub fn fbm_perlin_surflet_4d(
-    point: Vector4<f64>,
-    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
-) -> f64 {
-    fbm_4d(
-        point, frequency, lacunarity, persistence, octaves,
-        |point, octave| perlin_surflet_4d_variant(point.into(), octave as isize, hasher)
-    )
-}
-
-pub fn fbm_simplex_2d(
-    point: Vector2<f64>,
-    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
-) -> f64 {
-    fbm_2d(
-        point, frequency, lacunarity, persistence, octaves,
-        |point, octave| simplex_2d_variant(point.into(), octave as isize, hasher)
-    )
-}
-
-pub fn fbm_simplex_3d(
-    point: Vector3<f64>,
-    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
-) -> f64 {
-    fbm_3d(
-        point, frequency, lacunarity, persistence, octaves,
-        |point, octave| simplex_3d_variant(point.into(), octave as isize, hasher)
-    )
-}
-
-pub fn fbm_simplex_4d(
-    point: Vector4<f64>,
-    frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
-) -> f64 {
-    fbm_4d(
-        point, frequency, lacunarity, persistence, octaves,
-        |point, octave| simplex_4d_variant(point.into(), octave as isize, hasher)
-    )
-}
+specialized_fbm!(fbm_ridged_perlin_2d, Vector2, fbm_ridged_2d, perlin_2d_variant);
+specialized_fbm!(fbm_ridged_perlin_3d, Vector3, fbm_ridged_3d, perlin_3d_variant);
+specialized_fbm!(fbm_ridged_perlin_4d, Vector4, fbm_ridged_4d, perlin_4d_variant);
+specialized_fbm!(fbm_ridged_open_simplex_2d, Vector2, fbm_ridged_2d, open_simplex_2d_variant);
+specialized_fbm!(fbm_ridged_open_simplex_3d, Vector3, fbm_ridged_3d, open_simplex_3d_variant);
+specialized_fbm!(fbm_ridged_open_simplex_4d, Vector4, fbm_ridged_4d, open_simplex_4d_variant);
+specialized_fbm!(fbm_ridged_perlin_surflet_2d, Vector2, fbm_ridged_2d, perlin_surflet_2d_variant);
+specialized_fbm!(fbm_ridged_perlin_surflet_3d, Vector3, fbm_ridged_3d, perlin_surflet_3d_variant);
+specialized_fbm!(fbm_ridged_perlin_surflet_4d, Vector4, fbm_ridged_4d, perlin_surflet_4d_variant);
+specialized_fbm!(fbm_ridged_simplex_2d, Vector2, fbm_ridged_2d, simplex_2d_variant);
+specialized_fbm!(fbm_ridged_simplex_3d, Vector3, fbm_ridged_3d, simplex_3d_variant);
+specialized_fbm!(fbm_ridged_simplex_4d, Vector4, fbm_ridged_4d, simplex_4d_variant);
