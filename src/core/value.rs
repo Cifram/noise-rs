@@ -4,8 +4,8 @@ use crate::{
 };
 
 pub fn value_2d(point: Vector2<f64>, hasher: &PermutationTable) -> f64 {
-    let floored = point.floor();
-    let corner = floored.numcast::<isize>().unwrap();
+    let corner = point.floor_to_isize();
+    let floored = corner.numcast().unwrap();
     let weight = (point - floored).map_quintic();
 
     macro_rules! get(
@@ -29,8 +29,8 @@ pub fn value_2d(point: Vector2<f64>, hasher: &PermutationTable) -> f64 {
 }
 
 pub fn value_3d(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
-    let floored = point.floor();
-    let corner = floored.numcast::<isize>().unwrap();
+    let corner = point.floor_to_isize();
+    let floored = corner.numcast().unwrap();
     let weight = (point - floored).map_quintic();
 
     macro_rules! get(
@@ -62,8 +62,8 @@ pub fn value_3d(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
 }
 
 pub fn value_4d(point: Vector4<f64>, hasher: &PermutationTable) -> f64 {
-    let floored = point.floor();
-    let corner = floored.numcast::<isize>().unwrap();
+    let corner = point.floor_to_isize();
+    let floored = corner.numcast().unwrap();
     let weight = (point - floored).map_quintic();
 
     macro_rules! get(

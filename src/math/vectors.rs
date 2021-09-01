@@ -126,12 +126,16 @@ macro_rules! vector_type {
                 }
             }
 
-            pub fn floor(self) -> Self
+            pub fn floor_to_isize(self) -> $type_name<isize>
             where
                 T: Real,
             {
-                Self {
-                    $($dim: self.$dim.floor(),)+
+                $type_name {
+                    $($dim: if self.$dim <= T::zero() {
+                        <isize as NumCast>::from(self.$dim).unwrap() - 1
+                    } else {
+                        <isize as NumCast>::from(self.$dim).unwrap()
+                    }),+
                 }
             }
 

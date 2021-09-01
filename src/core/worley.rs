@@ -803,8 +803,8 @@ fn get_point_4d(cell: Vector4<isize>, hasher: &PermutationTable) -> Vector4<f64>
 
 #[inline(always)]
 pub fn base_worley_2d_1point(point: Vector2<f64>, hasher: &PermutationTable) -> Worley2DOutput {
-    let floor = point.floor();
-    let cell = floor.numcast().unwrap();
+    let cell = point.floor_to_isize();
+    let floor = cell.numcast().unwrap();
     let frac = point - floor;
 
     let near = cell;
@@ -842,8 +842,8 @@ pub fn base_worley_2d_1point(point: Vector2<f64>, hasher: &PermutationTable) -> 
 
 #[inline(always)]
 pub fn base_worley_2d_2point(point: Vector2<f64>, hasher: &PermutationTable) -> (Worley2DOutput, Worley2DOutput) {
-    let floor = point.floor();
-    let cell = floor.numcast().unwrap();
+    let cell = point.floor_to_isize();
+    let floor = cell.numcast().unwrap();
     let frac = point - floor;
 
     let mut nearest_cell1 = cell;
@@ -898,8 +898,8 @@ pub fn base_worley_2d_2point(point: Vector2<f64>, hasher: &PermutationTable) -> 
 
 #[inline(always)]
 pub fn base_worley_3d(point: Vector3<f64>, hasher: &PermutationTable) -> Worley3DOutput {
-    let floor = point.floor();
-    let cell = floor.numcast().unwrap();
+    let cell = point.floor_to_isize();
+    let floor = cell.numcast().unwrap();
     let frac = point - floor;
 
     let near = cell;
@@ -943,8 +943,8 @@ pub fn base_worley_3d(point: Vector3<f64>, hasher: &PermutationTable) -> Worley3
 
 #[inline(always)]
 pub fn base_worley_3d_2point(point: Vector3<f64>, hasher: &PermutationTable) -> (Worley3DOutput, Worley3DOutput) {
-    let floor = point.floor();
-    let cell = floor.numcast().unwrap();
+    let cell = point.floor_to_isize();
+    let floor = cell.numcast().unwrap();
     let frac = point - floor;
 
     let mut nearest_cell1 = cell;
@@ -1019,8 +1019,8 @@ pub fn base_worley_3d_2point(point: Vector3<f64>, hasher: &PermutationTable) -> 
 #[inline(always)]
 #[allow(clippy::cognitive_complexity)]
 pub fn base_worley_4d(point: Vector4<f64>, hasher: &PermutationTable) -> Worley4DOutput {
-    let floor = point.floor();
-    let cell = floor.numcast().unwrap();
+    let cell = point.floor_to_isize();
+    let floor = cell.numcast().unwrap();
     let frac = point - floor;
 
     let near = cell;
@@ -1073,8 +1073,8 @@ pub fn base_worley_4d(point: Vector4<f64>, hasher: &PermutationTable) -> Worley4
 
 #[inline(always)]
 pub fn base_worley_4d_2point(point: Vector4<f64>, hasher: &PermutationTable) -> (Worley4DOutput, Worley4DOutput) {
-    let floor = point.floor();
-    let cell = floor.numcast().unwrap();
+    let cell = point.floor_to_isize();
+    let floor = cell.numcast().unwrap();
     let frac = point - floor;
 
     let mut nearest_cell1 = cell;

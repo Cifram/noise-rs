@@ -134,16 +134,16 @@ pub fn super_simplex_2d(point: Vector2<f64>, hasher: &PermutationTable) -> f64 {
 pub fn super_simplex_3d(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
     // Transform point from real space to simplex space
     let to_simplex_offset = point.sum() * TO_SIMPLEX_CONSTANT_3D;
-    let simplex_point_1 = point.map(|v| -(v + to_simplex_offset));
-    let second_simplex_point = simplex_point_1.map(|v| v + 512.5);
+    let simplex_point1 = point.map(|v| -(v + to_simplex_offset));
+    let simplex_point2 = simplex_point1.map(|v| v + 512.5);
 
     // Get base point of simplex and barycentric coordinates in simplex space
-    let simplex_floor1 = simplex_point_1.floor();
-    let simplex_cell1 = simplex_floor1.numcast::<isize>().unwrap();
-    let simplex_rel1 = simplex_point_1 - simplex_floor1;
-    let simplex_floor2 = second_simplex_point.floor();
-    let simplex_cell2 = simplex_floor2.numcast::<isize>().unwrap();
-    let simplex_rel2 = second_simplex_point - simplex_floor2;
+    let simplex_cell1 = simplex_point1.floor_to_isize();
+    let simplex_floor1 = simplex_cell1.numcast().unwrap();
+    let simplex_rel1 = simplex_point1 - simplex_floor1;
+    let simplex_cell2 = simplex_point2.floor_to_isize();
+    let simplex_floor2 = simplex_cell2.numcast().unwrap();
+    let simplex_rel2 = simplex_point2 - simplex_floor2;
 
     // Create indices to lookup table from barycentric coordinates
     let index1 =

@@ -38,8 +38,8 @@ where
     /* Skew the input space to determine which simplex cell we're in */
     let skew = point.sum() * SKEW_FACTOR_2D;
     let skewed = point + skew;
-    let floor = skewed.floor();
-    let cell = floor.numcast().unwrap();
+    let cell = skewed.floor_to_isize();
+    let floor = cell.numcast().unwrap();
 
     let unskew: f64 = floor.sum() as f64 * UNSKEW_FACTOR_2D;
     // Unskew the cell origin back to (x,y) space
