@@ -1,12 +1,11 @@
 use crate::noise_fns::NoiseFn;
-use core::marker::PhantomData;
 
 /// Noise function that applies a scaling factor and a bias to the output value
 /// from the source function.
 ///
 /// The function retrieves the output value from the source function, multiplies
 /// it with the scaling factor, adds the bias to it, then outputs the value.
-pub struct ScaleBias<T, Source, const DIM: usize> {
+pub struct ScaleBias<Source, const DIM: usize> {
     /// Outputs a value.
     pub source: Source,
 
@@ -17,20 +16,17 @@ pub struct ScaleBias<T, Source, const DIM: usize> {
     /// Bias to apply to the scaled output value from the source function.
     /// The default value is 0.0.
     pub bias: f64,
-
-    phantom: PhantomData<T>,
 }
 
-impl<T, Source, const DIM: usize> ScaleBias<T, Source, DIM>
+impl<Source, const DIM: usize> ScaleBias<Source, DIM>
 where
-    Source: NoiseFn<T, DIM>,
+    Source: NoiseFn<f64, DIM>,
 {
     pub fn new(source: Source) -> Self {
         Self {
             source,
             scale: 1.0,
             bias: 0.0,
-            phantom: PhantomData,
         }
     }
 
@@ -43,17 +39,17 @@ where
     }
 }
 
-impl<T, Source, const DIM: usize> NoiseFn<T, DIM> for ScaleBias<T, Source, DIM>
+impl<Source, const DIM: usize> NoiseFn<f64, DIM> for ScaleBias<Source, DIM>
 where
-    Source: NoiseFn<T, DIM>,
+    Source: NoiseFn<f64, DIM>,
 {
     #[cfg(not(target_os = "emscripten"))]
-    fn get(&self, point: [T; DIM]) -> f64 {
+    fn get(&self, point: [f64; DIM]) -> f64 {
         (self.source.get(point)).mul_add(self.scale, self.bias)
     }
 
     #[cfg(target_os = "emscripten")]
-    fn get(&self, point: [T; DIM]) -> f64 {
+    fn get(&self, point: [f64; DIM]) -> f64 {
         (self.source.get(point) * self.scale) + self.bias
     }
 }
