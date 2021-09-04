@@ -1,58 +1,30 @@
 extern crate noise;
 
-use noise::{utils::*, *};
+use noise::{
+    permutationtable::PermutationTable,
+    core::{
+        displace::displace_3d,
+        fbm::{fbm_ridged_perlin_3d, fbm_perlin_3d_variant},
+        spheres::spheres_2d,
+    },
+    math::vectors::{Vector2, Vector3},
+    utils::*
+};
+
+fn jade_noise(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
+    let point = displace_3d(point, |point, dim| fbm_perlin_3d_variant(point, dim, 4.0, 2.0, 0.5, 2, hasher) * (1.0/16.0));
+    let primary_jade = fbm_ridged_perlin_3d(point, 2.0, 2.20703125, 1.0, 6, hasher);
+    let secondary_point = displace_3d(point, |point, dim| fbm_perlin_3d_variant(point, dim+4, 4.0, 2.0, 0.5, 4, hasher) * (1.0/4.0));
+    let secondary_point = secondary_point.rotate_axis_angle(Vector3::new(1.0, 0.2, 0.1), 84.0f64.to_radians());
+    let secondary_jade = spheres_2d(Vector2::new(secondary_point.x, secondary_point.y), 2.0) * 0.25;
+    primary_jade + secondary_jade
+}
 
 fn main() {
-    // Primary jade texture. The ridges from the ridged-multifractal function
-    // produces the veins.
-    let primary_jade = RidgedMulti::new(0)
-        .set_frequency(2.0)
-        .set_lacunarity(2.20703125)
-        .set_octaves(6);
+    let hasher = PermutationTable::new(0);
 
-    // Base of the secondary jade texture. The base texture uses concentric
-    // cylinders aligned on the z axis, which will eventually be perturbed.
-    let base_secondary_jade = Cylinders::new().set_frequency(2.0);
-
-    // Rotate the base secondary jade texture so that the cylinders are not
-    // aligned with any axis. This produces more variation in the secondary
-    // jade texture since the texture is parallel to the y-axis.
-    let rotated_base_secondary_jade =
-        RotatePoint::new(base_secondary_jade).set_angles(90.0, 25.0, 5.0, 0.0);
-
-    // Slightly perturb the secondary jade texture for more realism.
-    let perturbed_base_secondary_jade = Turbulence::new(rotated_base_secondary_jade)
-        .set_seed(1)
-        .set_frequency(4.0)
-        .set_power(1.0 / 4.0)
-        .set_roughness(4);
-
-    // Scale the secondary jade texture so it makes a small contribution to the
-    // final jade texture.
-    let secondary_jade = ScaleBias::new(perturbed_base_secondary_jade)
-        .set_scale(0.25)
-        .set_bias(0.0);
-
-    // Add the two jade textures together. These two textures were produced
-    // using different combinations of coherent noise, so the final texture
-    // will have a lot of variation.
-    let combined_jade = Add::new(primary_jade, secondary_jade);
-
-    // Finally, perturb the combined jade texture to produce the final jade
-    // texture. A low roughness produces nice veins.
-    let final_jade = Turbulence::new(combined_jade)
-        .set_seed(2)
-        .set_frequency(4.0)
-        .set_power(1.0 / 16.0)
-        .set_roughness(2);
-
-    let planar_texture = PlaneMapBuilder::new(&final_jade)
+    let planar_texture = PlaneMapBuilder::new_fn(|point| jade_noise(point.into(), &hasher))
         .set_size(1024, 1024)
-        .build();
-
-    let seamless_texture = PlaneMapBuilder::new(final_jade)
-        .set_size(1024, 1024)
-        .set_is_seamless(true)
         .build();
 
     // Create a jade palette.
@@ -69,8 +41,4 @@ fn main() {
     renderer
         .render(&planar_texture)
         .write_to_file("texture_jade_planar.png");
-
-    renderer
-        .render(&seamless_texture)
-        .write_to_file("texture_jade_seamless.png");
 }
