@@ -31,10 +31,7 @@ macro_rules! vector_type {
             }
         }
 
-        impl<T> $type_name<T>
-        where
-            T: Copy,
-        {
+        impl<T: Copy> $type_name<T> {
             #[inline]
             pub fn broadcast(value: T) -> Self {
                 Self { $($dim: value),+ }
@@ -74,7 +71,7 @@ macro_rules! vector_type {
             #[inline]
             pub fn magnitude_squared(self) -> T
             where
-                T: Copy + Zero + AddAssign + Mul<Output = T>,
+                T: Zero + AddAssign + Mul<Output = T>,
             {
                 self.dot(self)
             }
@@ -312,6 +309,20 @@ macro_rules! vector_type {
             }
         }
 
+        impl<T> Mul for $type_name<T>
+        where
+            T: Mul<Output = T> + Copy,
+        {
+            type Output = Self;
+
+            #[inline]
+            fn mul(self, rhs: Self) -> Self::Output {
+                Self {
+                    $($dim: self.$dim * rhs.$dim,)+
+                }
+            }
+        }
+
         impl<T> Mul<T> for $type_name<T>
         where
             T: Mul<Output = T> + Copy,
@@ -323,6 +334,16 @@ macro_rules! vector_type {
                 Self {
                     $($dim: self.$dim * rhs,)+
                 }
+            }
+        }
+
+        impl<T> MulAssign for $type_name<T>
+        where
+            T: MulAssign + Copy,
+        {
+            #[inline]
+            fn mul_assign(&mut self, rhs: Self) {
+                $(self.$dim *= rhs.$dim;)+
             }
         }
 
@@ -401,3 +422,25 @@ macro_rules! vector_type {
 vector_type!(Vector2, 2, 0:x, 1:y);
 vector_type!(Vector3, 3, 0:x, 1:y, 2:z);
 vector_type!(Vector4, 4, 0:x, 1:y, 2:z, 3:w);
+
+impl<T: Copy> Vector3<T> {
+    pub fn cross(&self, other: Self) -> Self
+    where
+        T: Mul<Output = T> + Sub<Output = T>
+    {
+        Self {
+            x: self.y*other.z - self.z*other.y,
+            y: self.z*other.x - self.x*other.z,
+            z: self.x*other.y - self.y*other.x,
+        }
+    }
+
+    pub fn rotate_axis_angle(&self, axis: Self, angle: T) -> Self
+    where
+        T: Copy + Real + AddAssign
+    {
+        let cos = angle.cos();
+        let sin = angle.sin();
+        *self * cos + self.cross(axis) * sin + axis * self.dot(axis) * (T::one() - cos)
+    }
+}
