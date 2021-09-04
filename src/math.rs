@@ -3,6 +3,7 @@
 
 pub(crate) mod interpolate;
 pub(crate) mod s_curve;
+pub mod select;
 pub mod vectors;
 
 #[cfg(not(target_os = "emscripten"))]
