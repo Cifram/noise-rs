@@ -1,51 +1,44 @@
 extern crate noise;
 
-use noise::{utils::*, *};
+use noise::{
+    permutationtable::PermutationTable,
+    core::{
+        displace::displace_3d,
+        fbm::{fbm_craggy_perlin_3d, fbm_perlin_3d_variant},
+        spheres::spheres_2d,
+    },
+    math::vectors::{Vector2, Vector3},
+    utils::*
+};
 
-fn main() {
+fn wood_noise(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
+    // Displace the wood grain texture a bit so our rings aren't completely regular.
+    let point = displace_3d(point, |point, dim| fbm_perlin_3d_variant(point, dim, 2.0, 2.0, 0.5, 4, hasher) * (1.0/64.0));
+
+    // Rotate it 84 degrees so we get a more interesting slice of the log.
+    let point = point.rotate_axis_angle(Vector3::new(1.0, 0.0, 0.0), 84.0f64.to_radians());
+
+    // Offset it a bit on the y axis to again get a more interesting slice of the log.
+    let point = point + Vector3::new(0.0, 1.48, 0.0);
+
     // Base wood texture. Uses concentric cylinders aligned on the z-axis, like a log.
-    let base_wood = Cylinders::new().set_frequency(16.0);
+    let base_wood = spheres_2d(Vector2::new(point.x, point.y), 16.0);
 
-    // Basic Multifractal noise to use for the wood grain.
-    let wood_grain_noise = BasicMulti::new(0)
-        .set_frequency(48.0)
-        .set_persistence(0.5)
-        .set_lacunarity(2.20703125)
-        .set_octaves(3);
+    // Get a craggy noise for the wood grain.
+    let wood_grain_noise = fbm_craggy_perlin_3d(point * Vector3::new(1.0, 1.0, 0.25), 48.0, 2.20703125, 0.5, 3, hasher);
 
-    // Stretch the perlin noise in the same direction as the center of the log. Should
-    // produce a nice wood-grain texture.
-    let scaled_base_wood_grain = ScalePoint::new(wood_grain_noise).set_z_scale(0.25);
-
-    // Scale the wood-grain values so that they can be added to the base wood texture.
-    let wood_grain = ScaleBias::new(scaled_base_wood_grain)
-        .set_scale(0.25)
-        .set_bias(0.125);
+    // Stretch the noise in the same direction as the concentric circles, to get a good
+    // wood grain going.
+    let wood_grain = wood_grain_noise * 0.25 + 0.125;
 
     // Add the wood grain texture to the base wood texture.
-    let combined_wood = Add::new(base_wood, wood_grain);
+    base_wood + wood_grain
+}
 
-    // Slightly perturb the wood to create a more realistic texture.
-    let perturbed_wood = Turbulence::new(combined_wood)
-        .set_seed(1)
-        .set_frequency(4.0)
-        .set_power(1.0 / 256.0)
-        .set_roughness(4);
+fn main() {
+    let hasher = PermutationTable::new(0);
 
-    // Cut the wood texture a small distance from the center of the log.
-    let translated_wood = TranslatePoint::new(perturbed_wood).set_y_translation(1.48);
-
-    // Set the cut on a angle to produce a more interesting texture.
-    let rotated_wood = RotatePoint::new(translated_wood).set_angles(84.0, 0.0, 0.0, 0.0);
-
-    // Finally, perturb the wood texture again to produce the final texture.
-    let final_wood = Turbulence::new(rotated_wood)
-        .set_seed(2)
-        .set_frequency(2.0)
-        .set_power(1.0 / 64.0)
-        .set_roughness(4);
-
-    let planar_texture = PlaneMapBuilder::new(final_wood)
+    let planar_texture = PlaneMapBuilder::new_fn(|point| wood_noise(point.into(), &hasher))
         .set_size(1024, 1024)
         .build();
 
