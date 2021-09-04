@@ -44,19 +44,19 @@ pub struct BasicMulti {
     /// persistence produces "rougher" noise.
     pub persistence: f64,
 
-    seed: u32,
+    seed: u64,
     sources: Vec<Perlin>,
 }
 
 impl BasicMulti {
-    pub const DEFAULT_SEED: u32 = 0;
+    pub const DEFAULT_SEED: u64 = 0;
     pub const DEFAULT_OCTAVES: usize = 6;
     pub const DEFAULT_FREQUENCY: f64 = 2.0;
     pub const DEFAULT_LACUNARITY: f64 = core::f64::consts::PI * 2.0 / 3.0;
     pub const DEFAULT_PERSISTENCE: f64 = 0.5;
     pub const MAX_OCTAVES: usize = 32;
 
-    pub fn new(seed: u32) -> Self {
+    pub fn new(seed: u64) -> Self {
         Self {
             seed,
             octaves: Self::DEFAULT_OCTAVES,
@@ -105,7 +105,7 @@ impl MultiFractal for BasicMulti {
 }
 
 impl Seedable for BasicMulti {
-    fn set_seed(self, seed: u32) -> Self {
+    fn set_seed(self, seed: u64) -> Self {
         if self.seed == seed {
             return self;
         }
@@ -117,7 +117,7 @@ impl Seedable for BasicMulti {
         }
     }
 
-    fn seed(&self) -> u32 {
+    fn seed(&self) -> u64 {
         self.seed
     }
 }

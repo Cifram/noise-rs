@@ -8,14 +8,14 @@ use crate::{
 ///
 #[derive(Clone, Copy, Debug)]
 pub struct Simplex {
-    seed: u32,
+    seed: u64,
     hasher: PermutationTable,
 }
 
 impl Simplex {
-    pub const DEFAULT_SEED: u32 = 0;
+    pub const DEFAULT_SEED: u64 = 0;
 
-    pub fn new(seed: u32) -> Self {
+    pub fn new(seed: u64) -> Self {
         Simplex {
             seed,
             hasher: PermutationTable::new(seed),
@@ -31,7 +31,7 @@ impl Default for Simplex {
 
 impl Seedable for Simplex {
     /// Sets the seed value for Simplex noise
-    fn set_seed(self, seed: u32) -> Self {
+    fn set_seed(self, seed: u64) -> Self {
         // If the new seed is the same as the current seed, just return self.
         if self.seed == seed {
             return self;
@@ -44,7 +44,7 @@ impl Seedable for Simplex {
         }
     }
 
-    fn seed(&self) -> u32 {
+    fn seed(&self) -> u64 {
         self.seed
     }
 }

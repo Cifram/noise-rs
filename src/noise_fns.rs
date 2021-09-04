@@ -50,8 +50,8 @@ where
 /// Trait for functions that require a seed before generating their values
 pub trait Seedable {
     /// Set the seed for the function implementing the `Seedable` trait
-    fn set_seed(self, seed: u32) -> Self;
+    fn set_seed(self, seed: u64) -> Self;
 
     /// Getter to retrieve the seed from the function
-    fn seed(&self) -> u32;
+    fn seed(&self) -> u64;
 }

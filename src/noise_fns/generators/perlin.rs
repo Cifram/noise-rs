@@ -7,14 +7,14 @@ use crate::{
 /// Noise function that outputs 2/3/4-dimensional Perlin noise.
 #[derive(Clone, Copy, Debug)]
 pub struct Perlin {
-    seed: u32,
+    seed: u64,
     perm_table: PermutationTable,
 }
 
 impl Perlin {
-    pub const DEFAULT_SEED: u32 = 0;
+    pub const DEFAULT_SEED: u64 = 0;
 
-    pub fn new(seed: u32) -> Self {
+    pub fn new(seed: u64) -> Self {
         Self {
             seed,
             perm_table: PermutationTable::new(seed),
@@ -30,7 +30,7 @@ impl Default for Perlin {
 
 impl Seedable for Perlin {
     /// Sets the seed value for Perlin noise
-    fn set_seed(self, seed: u32) -> Self {
+    fn set_seed(self, seed: u64) -> Self {
         // If the new seed is the same as the current seed, just return self.
         if self.seed == seed {
             return self;
@@ -43,7 +43,7 @@ impl Seedable for Perlin {
         }
     }
 
-    fn seed(&self) -> u32 {
+    fn seed(&self) -> u64 {
         self.seed
     }
 }

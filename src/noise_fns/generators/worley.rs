@@ -10,15 +10,15 @@ use crate::{
 pub struct Worley {
     /// Frequency of the seed points.
     pub frequency: f64,
-    seed: u32,
+    seed: u64,
     perm_table: PermutationTable,
 }
 
 impl Worley {
-    pub const DEFAULT_SEED: u32 = 0;
+    pub const DEFAULT_SEED: u64 = 0;
     pub const DEFAULT_FREQUENCY: f64 = 1.0;
 
-    pub fn new(seed: u32) -> Self {
+    pub fn new(seed: u64) -> Self {
         Self {
             perm_table: PermutationTable::new(seed),
             seed,
@@ -40,7 +40,7 @@ impl Default for Worley {
 
 impl Seedable for Worley {
     /// Sets the seed value used by the Worley cells.
-    fn set_seed(self, seed: u32) -> Self {
+    fn set_seed(self, seed: u64) -> Self {
         // If the new seed is the same as the current seed, just return self.
         if self.seed == seed {
             return self;
@@ -54,7 +54,7 @@ impl Seedable for Worley {
         }
     }
 
-    fn seed(&self) -> u32 {
+    fn seed(&self) -> u64 {
         self.seed
     }
 }

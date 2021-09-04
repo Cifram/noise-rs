@@ -23,7 +23,7 @@ pub struct Turbulence<Source> {
     /// Affects the roughness of the turbulence. Higher values are rougher.
     pub roughness: usize,
 
-    seed: u32,
+    seed: u64,
     x_distort_function: Fbm,
     y_distort_function: Fbm,
     z_distort_function: Fbm,
@@ -31,7 +31,7 @@ pub struct Turbulence<Source> {
 }
 
 impl<Source> Turbulence<Source> {
-    pub const DEFAULT_SEED: u32 = 0;
+    pub const DEFAULT_SEED: u64 = 0;
     pub const DEFAULT_FREQUENCY: f64 = 1.0;
     pub const DEFAULT_POWER: f64 = 1.0;
     pub const DEFAULT_ROUGHNESS: usize = 3;
@@ -90,7 +90,7 @@ impl<Source> Turbulence<Source> {
 }
 
 impl<Source> Seedable for Turbulence<Source> {
-    fn set_seed(self, seed: u32) -> Self {
+    fn set_seed(self, seed: u64) -> Self {
         Self {
             seed,
             x_distort_function: self.x_distort_function.set_seed(seed),
@@ -101,7 +101,7 @@ impl<Source> Seedable for Turbulence<Source> {
         }
     }
 
-    fn seed(&self) -> u32 {
+    fn seed(&self) -> u64 {
         self.seed
     }
 }

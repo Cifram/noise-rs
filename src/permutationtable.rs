@@ -1,11 +1,5 @@
-use alloc::vec::Vec;
 use core::fmt;
-use rand::{
-    distributions::{Distribution, Standard},
-    seq::SliceRandom,
-    Rng, SeedableRng,
-};
-use rand_xorshift::XorShiftRng;
+use rand::{prelude::*, rngs::SmallRng};
 
 const TABLE_SIZE: usize = 256;
 
@@ -18,42 +12,16 @@ pub struct PermutationTable {
     values: [usize; TABLE_SIZE],
 }
 
-impl Distribution<PermutationTable> for Standard {
-    /// Generates a PermutationTable using a random seed.
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PermutationTable {
-        let mut seq: Vec<usize> = (0..TABLE_SIZE).collect();
-        seq.shuffle(rng);
-
-        // It's unfortunate that this double-initializes the array, but Rust
-        // doesn't currently provide a clean way to do this in one pass. Hopefully
-        // it won't matter, as Seed creation will usually be a one-time event.
-        let mut perm_table = PermutationTable {
-            values: [0; TABLE_SIZE],
-        };
-        let seq_it = seq.iter();
-        for (x, y) in perm_table.values.iter_mut().zip(seq_it) {
-            *x = *y
-        }
-        perm_table
-    }
-}
-
 impl PermutationTable {
-    /// Deterministically generates a new permutation table based on a `u32` seed value.
-    ///
-    /// Internally this uses a `XorShiftRng`, but we don't really need to worry
-    /// about cryptographic security when working with procedural noise.
-    pub fn new(seed: u32) -> Self {
-        let mut real = [0; 16];
-        real[0] = 1;
-        for i in 1..4 {
-            real[i * 4] = seed as u8;
-            real[(i * 4) + 1] = (seed >> 8) as u8;
-            real[(i * 4) + 2] = (seed >> 16) as u8;
-            real[(i * 4) + 3] = (seed >> 24) as u8;
+    pub fn new(seed: u64) -> Self {
+        let mut seq = [0; 256];
+        for i in 0..256 {
+            seq[i] = i;
         }
-        let mut rng: XorShiftRng = SeedableRng::from_seed(real);
-        rng.gen()
+        seq.shuffle(&mut SmallRng::seed_from_u64(seed));
+        PermutationTable {
+            values: seq,
+        }
     }
 
     #[inline(always)]

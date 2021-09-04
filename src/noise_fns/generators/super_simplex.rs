@@ -7,14 +7,14 @@ use crate::{
 /// Noise function that outputs 2/3-dimensional Super Simplex noise.
 #[derive(Clone, Copy, Debug)]
 pub struct SuperSimplex {
-    seed: u32,
+    seed: u64,
     perm_table: PermutationTable,
 }
 
 impl SuperSimplex {
-    pub const DEFAULT_SEED: u32 = 0;
+    pub const DEFAULT_SEED: u64 = 0;
 
-    pub fn new(seed: u32) -> Self {
+    pub fn new(seed: u64) -> Self {
         Self {
             seed,
             perm_table: PermutationTable::new(seed),
@@ -30,7 +30,7 @@ impl Default for SuperSimplex {
 
 impl Seedable for SuperSimplex {
     /// Sets the seed value for Super Simplex noise
-    fn set_seed(self, seed: u32) -> Self {
+    fn set_seed(self, seed: u64) -> Self {
         // If the new seed is the same as the current seed, just return self.
         if self.seed == seed {
             return self;
@@ -43,7 +43,7 @@ impl Seedable for SuperSimplex {
         }
     }
 
-    fn seed(&self) -> u32 {
+    fn seed(&self) -> u64 {
         self.seed
     }
 }

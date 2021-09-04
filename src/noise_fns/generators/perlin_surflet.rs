@@ -10,14 +10,14 @@ use crate::{
 /// calculate the values at a point using wavelets instead of interpolated gradients.
 #[derive(Clone, Copy, Debug)]
 pub struct PerlinSurflet {
-    seed: u32,
+    seed: u64,
     perm_table: PermutationTable,
 }
 
 impl PerlinSurflet {
-    pub const DEFAULT_SEED: u32 = 0;
+    pub const DEFAULT_SEED: u64 = 0;
 
-    pub fn new(seed: u32) -> Self {
+    pub fn new(seed: u64) -> Self {
         Self {
             seed,
             perm_table: PermutationTable::new(seed),
@@ -33,7 +33,7 @@ impl Default for PerlinSurflet {
 
 impl Seedable for PerlinSurflet {
     /// Sets the seed value for Perlin noise
-    fn set_seed(self, seed: u32) -> Self {
+    fn set_seed(self, seed: u64) -> Self {
         // If the new seed is the same as the current seed, just return self.
         if self.seed == seed {
             return self;
@@ -46,7 +46,7 @@ impl Seedable for PerlinSurflet {
         }
     }
 
-    fn seed(&self) -> u32 {
+    fn seed(&self) -> u64 {
         self.seed
     }
 }

@@ -56,12 +56,12 @@ pub struct RidgedMulti {
     /// half the height of the previous.
     pub attenuation: f64,
 
-    seed: u32,
+    seed: u64,
     sources: Vec<Perlin>,
 }
 
 impl RidgedMulti {
-    pub const DEFAULT_SEED: u32 = 0;
+    pub const DEFAULT_SEED: u64 = 0;
     pub const DEFAULT_OCTAVE_COUNT: usize = 6;
     pub const DEFAULT_FREQUENCY: f64 = 1.0;
     pub const DEFAULT_LACUNARITY: f64 = core::f64::consts::PI * 2.0 / 3.0;
@@ -69,7 +69,7 @@ impl RidgedMulti {
     pub const DEFAULT_ATTENUATION: f64 = 2.0;
     pub const MAX_OCTAVES: usize = 32;
 
-    pub fn new(seed: u32) -> Self {
+    pub fn new(seed: u64) -> Self {
         Self {
             seed,
             octaves: Self::DEFAULT_OCTAVE_COUNT,
@@ -126,7 +126,7 @@ impl MultiFractal for RidgedMulti {
 }
 
 impl Seedable for RidgedMulti {
-    fn set_seed(self, seed: u32) -> Self {
+    fn set_seed(self, seed: u64) -> Self {
         if self.seed == seed {
             return self;
         }
@@ -138,7 +138,7 @@ impl Seedable for RidgedMulti {
         }
     }
 
-    fn seed(&self) -> u32 {
+    fn seed(&self) -> u64 {
         self.seed
     }
 }
