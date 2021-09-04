@@ -1,5 +1,6 @@
 use crate::{
     core::spheres::*,
+    math::vectors::Vector2,
     noise_fns::NoiseFn,
 };
 
@@ -36,18 +37,18 @@ impl Default for Cylinders {
 
 impl NoiseFn<f64, 2> for Cylinders {
     fn get(&self, point: [f64; 2]) -> f64 {
-        spheres_2d(point, self.frequency)
+        spheres_2d(point.into(), self.frequency)
     }
 }
 
 impl NoiseFn<f64, 3> for Cylinders {
     fn get(&self, point: [f64; 3]) -> f64 {
-        spheres_2d([point[0], point[1]], self.frequency)
+        spheres_2d(Vector2::new(point[0], point[1]), self.frequency)
     }
 }
 
 impl NoiseFn<f64, 4> for Cylinders {
     fn get(&self, point: [f64; 4]) -> f64 {
-        spheres_2d([point[0], point[1]], self.frequency)
+        spheres_2d(Vector2::new(point[0], point[1]), self.frequency)
     }
 }
