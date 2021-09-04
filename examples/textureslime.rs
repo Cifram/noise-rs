@@ -1,55 +1,51 @@
 extern crate noise;
 
-use noise::{utils::*, *};
+use noise::{
+    permutationtable::PermutationTable,
+    core::{
+        displace::displace_3d,
+        fbm::{fbm_ridged_perlin_3d, fbm_perlin_3d_variant},
+        perlin::{perlin_3d, perlin_3d_variant},
+    },
+    math::{vectors::Vector3},
+    select,
+    utils::*,
+};
+
+#[inline]
+fn slime_noise(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
+    // Displace the input coordinates to make the slime look turbulant
+    let point = displace_3d(point, |point, dim| fbm_perlin_3d_variant(point, dim, 8.0, 2.0, 0.5, 3, hasher) * (1.0/32.0));
+
+    // Build a slime map, which determines where to use large or small slime bubbles
+    let slime_map = fbm_ridged_perlin_3d(point, 2.0, 2.20703125, 1.0, 3, hasher);
+
+    // Select between the large or small slime bubbles based on the slime_map.
+    // If it's less than -0.875 or greater than 0.875, it'll use the large bubbles.
+    // Otherwise, it'll blend to the small bubbles at 0.0, and then blend back to
+    // the large bubbles again.
+    select!(slime_map,
+        {
+            // Large slime bubble texture
+            perlin_3d(point*4.0, hasher).abs()*4.0 - 2.0
+        } => -0.875, 0.000 => {
+            // Small slime bubble texture
+            perlin_3d_variant(point*24.0, 1, hasher).abs()*2.0 - 1.5
+        } =>  0.000, 0.875 => {
+            // Large slime bubble texture
+            perlin_3d(point*4.0, hasher).abs()*4.0 - 2.0
+        }
+    )
+}
 
 fn main() {
-    // Large slime bubble texture.
-    let large_slime = Billow::new(0)
-        .set_frequency(4.0)
-        .set_lacunarity(2.12109375)
-        .set_octaves(1);
+    let hasher = PermutationTable::new(0);
 
-    // Base of the small slime bubble texture. This texture will eventually
-    // appear inside cracks in the large slime bubble texture.
-    let small_slime_base = Billow::new(1)
-        .set_frequency(24.0)
-        .set_lacunarity(2.14453125)
-        .set_octaves(1);
-
-    // Scale and lower the small slime bubble values.
-    let small_slime = ScaleBias::new(small_slime_base)
-        .set_scale(0.5)
-        .set_bias(-0.5);
-
-    // Create a map that specifies where the large and small slime bubble
-    // textures will appear in the final texture map.
-    let slime_map = RidgedMulti::new(2)
-        .set_frequency(2.0)
-        .set_lacunarity(2.20703125)
-        .set_octaves(3);
-
-    // Choose between the large or small slime bubble textures depending on
-    // the corresponding value from the slime map. Choose the small slime
-    // bubble texture if the slime map value is within a narrow range of
-    // values, otherwise choose the large slime bubble texture. The edge
-    // falloff is non-zero so that there is a smooth transition between the
-    // two textures.
-    let slime_chooser = Select::new(large_slime, small_slime, slime_map)
-        .set_bounds(-0.375, 0.375)
-        .set_falloff(0.5);
-
-    // Finally, perturb the slime texture to add realism.
-    let final_slime = Turbulence::new(slime_chooser)
-        .set_seed(3)
-        .set_frequency(8.0)
-        .set_power(1.0 / 32.0)
-        .set_roughness(2);
-
-    let planar_texture = PlaneMapBuilder::new(&final_slime)
+    let planar_texture = PlaneMapBuilder::new_fn(|point| slime_noise(point.into(), &hasher))
         .set_size(1024, 1024)
         .build();
 
-    let seamless_texture = PlaneMapBuilder::new(final_slime)
+    let seamless_texture = PlaneMapBuilder::new_fn(|point| slime_noise(point.into(), &hasher))
         .set_size(1024, 1024)
         .set_is_seamless(true)
         .build();
