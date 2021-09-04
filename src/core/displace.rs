@@ -1,67 +1,56 @@
 use crate::{
     core::perlin::{perlin_2d_variant, perlin_3d_variant, perlin_4d_variant},
+    math::vectors::{Vector2, Vector3, Vector4},
     permutationtable::PermutationTable,
 };
 
 #[inline(always)]
-pub fn displace_2d<NoiseF, DisplaceF>(point: [f64; 2], noise: NoiseF, displace: DisplaceF) -> f64
+pub fn displace_2d<DisplaceF>(point: Vector2<f64>, displace: DisplaceF) -> Vector2<f64>
 where
-    NoiseF: Fn([f64; 2]) -> f64,
-    DisplaceF: Fn([f64; 2], isize) -> f64,
+    DisplaceF: Fn(Vector2<f64>, isize) -> f64,
 {
-    noise([
-        point[0] + displace(point, 0),
-        point[1] + displace(point, 1),
-    ])
+    Vector2::new(
+        point.x + displace(point, 0),
+        point.y + displace(point, 1),
+    )
 }
 
 #[inline(always)]
-pub fn displace_3d<NoiseF, DisplaceF>(point: [f64; 3], noise: NoiseF, displace: DisplaceF) -> f64
+pub fn displace_3d<DisplaceF>(point: Vector3<f64>, displace: DisplaceF) -> Vector3<f64>
 where
-    NoiseF: Fn([f64; 3]) -> f64,
-    DisplaceF: Fn([f64; 3], isize) -> f64,
+    DisplaceF: Fn(Vector3<f64>, isize) -> f64,
 {
-    noise([
-        point[0] + displace(point, 0),
-        point[1] + displace(point, 1),
-        point[2] + displace(point, 2),
-    ])
+    Vector3::new(
+        point.x + displace(point, 0),
+        point.y + displace(point, 1),
+        point.z + displace(point, 2),
+    )
 }
 
 #[inline(always)]
-pub fn displace_4d<NoiseF, DisplaceF>(point: [f64; 4], noise: NoiseF, displace: DisplaceF) -> f64
+pub fn displace_4d<DisplaceF>(point: Vector4<f64>, displace: DisplaceF) -> Vector4<f64>
 where
-    NoiseF: Fn([f64; 4]) -> f64,
-    DisplaceF: Fn([f64; 4], isize) -> f64,
+    DisplaceF: Fn(Vector4<f64>, isize) -> f64,
 {
-    noise([
-        point[0] + displace(point, 0),
-        point[1] + displace(point, 1),
-        point[2] + displace(point, 2),
-        point[3] + displace(point, 3),
-    ])
+    Vector4::new(
+        point.x + displace(point, 0),
+        point.y + displace(point, 1),
+        point.z + displace(point, 2),
+        point.w + displace(point, 3),
+    )
 }
 
 #[inline(always)]
-pub fn turbulance_perlin_2d<NoiseF>(point: [f64; 2], noise: NoiseF, scale: f64, hasher: &PermutationTable) -> f64
-where
-    NoiseF: Fn([f64; 2]) -> f64,
-{
-    displace_2d(point, noise, |point, dim| perlin_2d_variant(point.into(), dim+1, hasher) * scale)
+pub fn turbulance_perlin_2d(point: Vector2<f64>, scale: f64, hasher: &PermutationTable) -> Vector2<f64> {
+    displace_2d(point, |point, dim| perlin_2d_variant(point.into(), dim+1, hasher) * scale)
 }
 
 #[inline(always)]
-pub fn turbulance_perlin_3d<NoiseF>(point: [f64; 3], noise: NoiseF, scale: f64, hasher: &PermutationTable) -> f64
-where
-    NoiseF: Fn([f64; 3]) -> f64,
-{
-    displace_3d(point, noise, |point, dim| perlin_3d_variant(point.into(), dim+1, hasher) * scale)
+pub fn turbulance_perlin_3d(point: Vector3<f64>, scale: f64, hasher: &PermutationTable) -> Vector3<f64> {
+    displace_3d(point, |point, dim| perlin_3d_variant(point.into(), dim+1, hasher) * scale)
 }
 
 #[inline(always)]
-pub fn turbulance_perlin_4d<NoiseF>(point: [f64; 4], noise: NoiseF, scale: f64, hasher: &PermutationTable) -> f64
-where
-    NoiseF: Fn([f64; 4]) -> f64,
-{
-    displace_4d(point, noise, |point, dim| perlin_4d_variant(point.into(), dim+1, hasher) * scale)
+pub fn turbulance_perlin_4d(point: Vector4<f64>, scale: f64, hasher: &PermutationTable) -> Vector4<f64> {
+    displace_4d(point, |point, dim| perlin_4d_variant(point.into(), dim+1, hasher) * scale)
 }
