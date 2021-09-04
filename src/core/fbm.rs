@@ -60,6 +60,32 @@ fbm_ridged!(fbm_ridged_2d, Vector2, fbm_weighted_2d);
 fbm_ridged!(fbm_ridged_3d, Vector3, fbm_weighted_3d);
 fbm_ridged!(fbm_ridged_4d, Vector4, fbm_weighted_4d);
 
+macro_rules! fbm_craggy(
+    ($name:ident, $vector_type:ident, $fbm_fn:ident) => {
+        pub fn $name<F>(
+            point: $vector_type<f64>,
+            frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F
+        ) -> f64
+        where
+            F: Fn($vector_type<f64>, usize) -> f64
+        {
+            let mut point = point * frequency;
+            let mut amplitude = 1.0;
+            let mut result = noise_fn(point, 0);
+            for octave in 1..octaves {
+                point *= lacunarity;
+                amplitude *= persistence;
+                result += noise_fn(point, octave) * result * amplitude;
+            }
+            result * 0.5
+        }
+    }
+);
+
+fbm_craggy!(fbm_craggy_2d, Vector2, fbm_weighted_2d);
+fbm_craggy!(fbm_craggy_3d, Vector3, fbm_weighted_3d);
+fbm_craggy!(fbm_craggy_4d, Vector4, fbm_weighted_4d);
+
 macro_rules! specialized_fbm(
     ($name:ident, $name_variant:ident, $vector_type:ident, $fbm_fn:ident, $noise_fn:ident) => {
         pub fn $name(
@@ -77,7 +103,7 @@ macro_rules! specialized_fbm(
         ) -> f64 {
             $fbm_fn(
                 point, frequency, lacunarity, persistence, octaves,
-                |point, octave| $noise_fn(point.into(), octave as isize + variant*16, hasher)
+                |point, octave| $noise_fn(point.into(), octave as isize + variant*4, hasher)
             )
         }
     }
@@ -108,3 +134,16 @@ specialized_fbm!(fbm_ridged_perlin_surflet_4d, fbm_ridged_perlin_surflet_4d_vari
 specialized_fbm!(fbm_ridged_simplex_2d, fbm_ridged_simplex_2d_variant, Vector2, fbm_ridged_2d, simplex_2d_variant);
 specialized_fbm!(fbm_ridged_simplex_3d, fbm_ridged_simplex_3d_variant, Vector3, fbm_ridged_3d, simplex_3d_variant);
 specialized_fbm!(fbm_ridged_simplex_4d, fbm_ridged_simplex_4d_variant, Vector4, fbm_ridged_4d, simplex_4d_variant);
+
+specialized_fbm!(fbm_craggy_perlin_2d, fbm_craggy_perlin_2d_variant, Vector2, fbm_craggy_2d, perlin_2d_variant);
+specialized_fbm!(fbm_craggy_perlin_3d, fbm_craggy_perlin_3d_variant, Vector3, fbm_craggy_3d, perlin_3d_variant);
+specialized_fbm!(fbm_craggy_perlin_4d, fbm_craggy_perlin_4d_variant, Vector4, fbm_craggy_4d, perlin_4d_variant);
+specialized_fbm!(fbm_craggy_open_simplex_2d, fbm_craggy_open_simplex_2d_variant, Vector2, fbm_craggy_2d, open_simplex_2d_variant);
+specialized_fbm!(fbm_craggy_open_simplex_3d, fbm_craggy_open_simplex_3d_variant, Vector3, fbm_craggy_3d, open_simplex_3d_variant);
+specialized_fbm!(fbm_craggy_open_simplex_4d, fbm_craggy_open_simplex_4d_variant, Vector4, fbm_craggy_4d, open_simplex_4d_variant);
+specialized_fbm!(fbm_craggy_perlin_surflet_2d, fbm_craggy_perlin_surflet_2d_variant, Vector2, fbm_craggy_2d, perlin_surflet_2d_variant);
+specialized_fbm!(fbm_craggy_perlin_surflet_3d, fbm_craggy_perlin_surflet_3d_variant, Vector3, fbm_craggy_3d, perlin_surflet_3d_variant);
+specialized_fbm!(fbm_craggy_perlin_surflet_4d, fbm_craggy_perlin_surflet_4d_variant, Vector4, fbm_craggy_4d, perlin_surflet_4d_variant);
+specialized_fbm!(fbm_craggy_simplex_2d, fbm_craggy_simplex_2d_variant, Vector2, fbm_craggy_2d, simplex_2d_variant);
+specialized_fbm!(fbm_craggy_simplex_3d, fbm_craggy_simplex_3d_variant, Vector3, fbm_craggy_3d, simplex_3d_variant);
+specialized_fbm!(fbm_craggy_simplex_4d, fbm_craggy_simplex_4d_variant, Vector4, fbm_craggy_4d, simplex_4d_variant);

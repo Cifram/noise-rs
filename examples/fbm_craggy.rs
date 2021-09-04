@@ -1,0 +1,46 @@
+//! An example of using perlin noise
+
+extern crate noise;
+
+use noise::{
+    utils::*,
+    core::fbm::{
+        fbm_craggy_perlin_2d, fbm_craggy_perlin_3d, fbm_craggy_perlin_4d,
+        fbm_craggy_perlin_surflet_2d, fbm_craggy_perlin_surflet_3d, fbm_craggy_perlin_surflet_4d,
+        fbm_craggy_open_simplex_2d, fbm_craggy_open_simplex_3d, fbm_craggy_open_simplex_4d,
+        fbm_craggy_simplex_2d, fbm_craggy_simplex_3d, fbm_craggy_simplex_4d,
+    },
+    permutationtable::PermutationTable,
+};
+
+fn output<F, const DIM: usize>(func: F, name: &str)
+where
+    F: Fn([f64; DIM]) -> f64
+{
+    PlaneMapBuilder::new_fn(func)
+        .set_size(1024, 1024)
+        .set_x_bounds(-5.0, 5.0)
+        .set_y_bounds(-5.0, 5.0)
+        .build()
+        .write_to_file(name);
+}
+
+fn main() {
+    let hasher = PermutationTable::new(0);
+
+    output(|point| fbm_craggy_open_simplex_2d(point.into(), 2.0, 2.0, 0.5, 6, &hasher), "fbm craggy open simplex 2d.png");
+    output(|point| fbm_craggy_open_simplex_3d(point.into(), 2.0, 2.0, 0.5, 6, &hasher), "fbm craggy open simplex 3d.png");
+    output(|point| fbm_craggy_open_simplex_4d(point.into(), 2.0, 2.0, 0.5, 6, &hasher), "fbm craggy open simplex 4d.png");
+
+    output(|point| fbm_craggy_perlin_2d(point.into(), 2.0, 2.0, 0.5, 6, &hasher), "fbm craggy perlin 2d.png");
+    output(|point| fbm_craggy_perlin_3d(point.into(), 2.0, 2.0, 0.5, 6, &hasher), "fbm craggy perlin 3d.png");
+    output(|point| fbm_craggy_perlin_4d(point.into(), 2.0, 2.0, 0.5, 6, &hasher), "fbm craggy perlin 4d.png");
+
+    output(|point| fbm_craggy_perlin_surflet_2d(point.into(), 2.0, 2.0, 0.5, 6, &hasher), "fbm craggy perlin surflet 2d.png");
+    output(|point| fbm_craggy_perlin_surflet_3d(point.into(), 2.0, 2.0, 0.5, 6, &hasher), "fbm craggy perlin surflet 3d.png");
+    output(|point| fbm_craggy_perlin_surflet_4d(point.into(), 2.0, 2.0, 0.5, 6, &hasher), "fbm craggy perlin surflet 4d.png");
+
+    output(|point| fbm_craggy_simplex_2d(point.into(), 2.0, 2.0, 0.5, 6, &hasher), "fbm craggy simplex 2d.png");
+    output(|point| fbm_craggy_simplex_3d(point.into(), 2.0, 2.0, 0.5, 6, &hasher), "fbm craggy simplex 3d.png");
+    output(|point| fbm_craggy_simplex_4d(point.into(), 2.0, 2.0, 0.5, 6, &hasher), "fbm craggy simplex 4d.png");
+}
