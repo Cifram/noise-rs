@@ -30,35 +30,6 @@ fbm!(fbm_2d, Vector2);
 fbm!(fbm_3d, Vector3);
 fbm!(fbm_4d, Vector4);
 
-macro_rules! fbm_weighted(
-    ($name:ident, $vector_type:ident) => {
-        pub fn $name<F>(
-            point: $vector_type<f64>,
-            frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F
-        ) -> f64
-        where
-            F: Fn($vector_type<f64>, f64, usize) -> (f64, f64)
-        {
-            let mut point = point * frequency;
-            let mut amplitude = 1.0;
-            let mut result = 0.0;
-            let mut weight = 1.0;
-            for octave in 0..octaves {
-                let (signal, new_weight) = noise_fn(point, weight, octave);
-                result += signal * amplitude;
-                weight = new_weight;
-                point *= lacunarity;
-                amplitude *= persistence;
-            }
-            result
-        }
-    }
-);
-
-fbm_weighted!(fbm_weighted_2d, Vector2);
-fbm_weighted!(fbm_weighted_3d, Vector3);
-fbm_weighted!(fbm_weighted_4d, Vector4);
-
 macro_rules! fbm_ridged(
     ($name:ident, $vector_type:ident, $fbm_fn:ident) => {
         pub fn $name<F>(
@@ -68,16 +39,19 @@ macro_rules! fbm_ridged(
         where
             F: Fn($vector_type<f64>, usize) -> f64
         {
-            $fbm_fn(point, frequency, lacunarity, persistence, octaves, |point, weight, octave| {
-                let mut signal = noise_fn(point, octave);
-                signal = signal.abs();
-                signal = 1.0 - signal;
-                signal *= signal;
-                signal *= weight;
-                let mut weight = signal / 2.0;
-                weight = weight.clamp(0.0, 1.0);
-                (signal, weight)
-            }) * 2.0 / (2.0 - 0.5f64.powi(octaves as i32 - 1)) - 1.0
+            let mut point = point * frequency;
+            let mut amplitude = 1.0;
+            let mut result = 0.0;
+            let mut weight = 1.0;
+            for octave in 0..octaves {
+                let mut signal = 1.0 - noise_fn(point, octave).abs();
+                signal *= signal * weight;
+                weight = (signal / 2.0).clamp(0.0, 1.0);
+                result += signal * amplitude;
+                point *= lacunarity;
+                amplitude *= persistence;
+            }
+            result * 2.0 / (2.0 - 0.5f64.powi(octaves as i32 - 1)) - 1.0
         }
     }
 );
