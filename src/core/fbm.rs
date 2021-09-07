@@ -9,7 +9,11 @@ use crate::{
 
 macro_rules! fbm(
     ($name:ident, $vector_type:ident) => {
-        pub fn $name<F>(point: $vector_type<f64>, frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F) -> f64
+        #[inline]
+        pub fn $name<F>(
+            point: $vector_type<f64>,
+            frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F
+        ) -> f64
         where
             F: Fn($vector_type<f64>, usize) -> f64
         {
@@ -32,6 +36,7 @@ fbm!(fbm_4d, Vector4);
 
 macro_rules! fbm_billow(
     ($name:ident, $vector_type:ident, $fbm_fn:ident) => {
+        #[inline]
         pub fn $name<F>(
             point: $vector_type<f64>,
             frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F
@@ -50,6 +55,7 @@ fbm_billow!(fbm_billow_4d, Vector4, fbm_4d);
 
 macro_rules! fbm_ridged(
     ($name:ident, $vector_type:ident) => {
+        #[inline]
         pub fn $name<F>(
             point: $vector_type<f64>,
             frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F
@@ -80,6 +86,7 @@ fbm_ridged!(fbm_ridged_4d, Vector4);
 
 macro_rules! fbm_craggy(
     ($name:ident, $vector_type:ident, $fbm_fn:ident) => {
+        #[inline]
         pub fn $name<F>(
             point: $vector_type<f64>,
             frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F
@@ -106,6 +113,7 @@ fbm_craggy!(fbm_craggy_4d, Vector4, fbm_weighted_4d);
 
 macro_rules! specialized_fbm(
     ($name:ident, $name_variant:ident, $vector_type:ident, $fbm_fn:ident, $noise_fn:ident) => {
+        #[inline]
         pub fn $name(
             point: $vector_type<f64>,
             frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
@@ -115,6 +123,7 @@ macro_rules! specialized_fbm(
                 |point, octave| $noise_fn(point.into(), octave as isize, hasher)
             )
         }
+        #[inline]
         pub fn $name_variant(
             point: $vector_type<f64>, variant: isize,
             frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, hasher: &PermutationTable
