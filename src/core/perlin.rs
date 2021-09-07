@@ -17,8 +17,8 @@ where
     // Need to invert this value and multiply the unscaled result by the value to get a scaled
     // range of (-1, 1).
     //
-    // 1/(sqrt(N)/2), N=2 -> sqrt(2)
-    const SCALE_FACTOR: f64 = f64::consts::SQRT_2;
+    // 1/(sqrt(N)/2), N=2 -> 2/sqrt(2)
+    const SCALE_FACTOR: f64 = 2.0 / f64::consts::SQRT_2;
 
     let corner = point.floor_to_isize();
     let floored = corner.numcast().unwrap();
@@ -78,10 +78,10 @@ where
             {
                 let offset = distance - $offset.numcast().unwrap();
                 match hasher((corner + $offset).into()) & 0b1111 {
-                    0  | 12 =>  offset.x + offset.y    , // ( 1,  1,  0)
-                    1  | 13 => -offset.x + offset.y    , // (-1,  1,  0)
-                    2       =>  offset.x - offset.y    , // ( 1, -1,  0)
-                    3       => -offset.x - offset.y    , // (-1, -1,  0)
+                    0  | 12 =>  offset.x + offset.y, // ( 1,  1,  0)
+                    1  | 13 => -offset.x + offset.y, // (-1,  1,  0)
+                    2       =>  offset.x - offset.y, // ( 1, -1,  0)
+                    3       => -offset.x - offset.y, // (-1, -1,  0)
                     4       =>  offset.x + offset.z, // ( 1,  0,  1)
                     5       => -offset.x + offset.z, // (-1,  0,  1)
                     6       =>  offset.x - offset.z, // ( 1,  0, -1)
