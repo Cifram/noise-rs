@@ -69,10 +69,6 @@ name = "checkerboard"
 required-features = ["image"]
 
 [[example]]
-name = "complexplanet"
-required-features = ["image"]
-
-[[example]]
 name = "fbm"
 required-features = ["image"]
 
