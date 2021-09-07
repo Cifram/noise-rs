@@ -1,20 +1,4 @@
-use crate::{math::interpolate, noise_fns::NoiseFn, utils::noise_map::NoiseMap};
-
-pub struct NoiseFnWrapper<F, const DIM: usize>
-where
-    F: Fn([f64; DIM]) -> f64,
-{
-    func: F,
-}
-
-impl<F, const DIM: usize> NoiseFn<f64, DIM> for NoiseFnWrapper<F, DIM>
-where
-    F: Fn([f64; DIM]) -> f64,
-{
-    fn get(&self, point: [f64; DIM]) -> f64 {
-        (self.func)(point)
-    }
-}
+use crate::{math::interpolate, utils::noise_map::NoiseMap};
 
 fn pad_array<const SIZE: usize>(values: &[f64]) -> [f64; SIZE] {
     let mut result = [0.0; SIZE];
@@ -24,205 +8,80 @@ fn pad_array<const SIZE: usize>(values: &[f64]) -> [f64; SIZE] {
     result
 }
 
-pub trait NoiseMapBuilder<SourceModule> {
+pub trait NoiseMapBuilder<SourceFn> {
     fn set_size(self, width: usize, height: usize) -> Self;
 
-    fn set_source_module(self, source_module: SourceModule) -> Self;
+    fn set_source_module(self, source_fn: SourceFn) -> Self;
 
     fn size(&self) -> (usize, usize);
 
     fn build(&self) -> NoiseMap;
 }
 
-pub struct CylinderMapBuilder<SourceModule>
+pub struct PlaneMapBuilder<SourceFn, const DIM: usize>
 where
-    SourceModule: NoiseFn<f64, 3>,
-{
-    angle_bounds: (f64, f64),
-    height_bounds: (f64, f64),
-    size: (usize, usize),
-    source_module: SourceModule,
-}
-
-impl<SourceModule> CylinderMapBuilder<SourceModule>
-where
-    SourceModule: NoiseFn<f64, 3>,
-{
-    pub fn new(source_module: SourceModule) -> Self {
-        CylinderMapBuilder {
-            angle_bounds: (-90.0, 90.0),
-            height_bounds: (-1.0, 1.0),
-            size: (100, 100),
-            source_module,
-        }
-    }
-
-    pub fn set_angle_bounds(self, lower_bound: f64, upper_bound: f64) -> Self {
-        let angle_bounds = if lower_bound >= upper_bound {
-            // eprintln!(
-            //     "lower bound {:?} is larger than upper bound {:?}, switching order",
-            //     lower_bound, upper_bound
-            // );
-            (upper_bound, lower_bound)
-        } else {
-            (lower_bound, upper_bound)
-        };
-
-        CylinderMapBuilder {
-            angle_bounds,
-            ..self
-        }
-    }
-
-    pub fn set_height_bounds(self, lower_bound: f64, upper_bound: f64) -> Self {
-        let height_bounds = if lower_bound >= upper_bound {
-            // eprintln!(
-            //     "lower bound {:?} is larger than upper bound {:?}, switching order",
-            //     lower_bound, upper_bound
-            // );
-            (upper_bound, lower_bound)
-        } else {
-            (lower_bound, upper_bound)
-        };
-
-        CylinderMapBuilder {
-            height_bounds,
-            ..self
-        }
-    }
-
-    pub fn angle_bounds(&self) -> (f64, f64) {
-        self.angle_bounds
-    }
-
-    pub fn height_bounds(&self) -> (f64, f64) {
-        self.height_bounds
-    }
-}
-
-impl<SourceModule> NoiseMapBuilder<SourceModule> for CylinderMapBuilder<SourceModule>
-where
-    SourceModule: NoiseFn<f64, 3>,
-{
-    fn set_size(self, width: usize, height: usize) -> Self {
-        CylinderMapBuilder {
-            size: (width, height),
-            ..self
-        }
-    }
-
-    fn set_source_module(self, source_module: SourceModule) -> Self {
-        CylinderMapBuilder {
-            source_module,
-            ..self
-        }
-    }
-
-    fn size(&self) -> (usize, usize) {
-        self.size
-    }
-
-    fn build(&self) -> NoiseMap {
-        let mut result_map = NoiseMap::new(self.size.0, self.size.1);
-
-        let (width, height) = self.size;
-
-        let angle_extent = self.angle_bounds.1 - self.angle_bounds.0;
-        let height_extent = self.height_bounds.1 - self.height_bounds.0;
-
-        let x_step = angle_extent / width as f64;
-        let y_step = height_extent / height as f64;
-
-        for y in 0..height {
-            let current_height = self.height_bounds.0 + y_step * y as f64;
-
-            for x in 0..width {
-                let current_angle = self.angle_bounds.0 + x_step * x as f64;
-
-                let point_x = current_angle.to_radians().cos();
-                let point_z = current_angle.to_radians().sin();
-
-                let value = self.source_module.get([point_x, current_height, point_z]);
-
-                // println!(
-                //     "calculated value {} at {}, {}, {}",
-                //     value, point_x, current_height, point_z
-                // );
-
-                result_map[(x, y)] = value;
-            }
-        }
-
-        result_map
-    }
-}
-
-pub struct PlaneMapBuilder<SourceModule, const DIM: usize>
-where
-    SourceModule: NoiseFn<f64, DIM>,
+    SourceFn: Fn([f64; DIM]) -> f64,
 {
     is_seamless: bool,
     x_bounds: (f64, f64),
     y_bounds: (f64, f64),
     size: (usize, usize),
-    source_module: SourceModule,
+    source_fn: SourceFn,
 }
 
-impl<F, const DIM: usize> PlaneMapBuilder<NoiseFnWrapper<F, DIM>, DIM>
+impl<SourceFn, const DIM: usize> PlaneMapBuilder<SourceFn, DIM>
 where
-    F: Fn([f64; DIM]) -> f64,
+    SourceFn: Fn([f64; DIM]) -> f64,
 {
-    pub fn new_fn(func: F) -> Self {
+    pub fn new_fn(func: SourceFn) -> Self {
         PlaneMapBuilder {
             is_seamless: false,
             x_bounds: (-1.0, 1.0),
             y_bounds: (-1.0, 1.0),
             size: (100, 100),
-            source_module: NoiseFnWrapper {
-                func,
-            },
+            source_fn: func,
         }
     }
 }
 
-impl<SourceModule> PlaneMapBuilder<SourceModule, 2>
+impl<SourceFn> PlaneMapBuilder<SourceFn, 2>
 where
-    SourceModule: NoiseFn<f64, 2>,
+    SourceFn: Fn([f64; 2]) -> f64,
 {
-    pub fn new_2d(source_module: SourceModule) -> Self {
-        Self::new(source_module)
+    pub fn new_2d(source_fn: SourceFn) -> Self {
+        Self::new(source_fn)
     }
 }
 
-impl<SourceModule> PlaneMapBuilder<SourceModule, 3>
+impl<SourceFn> PlaneMapBuilder<SourceFn, 3>
 where
-    SourceModule: NoiseFn<f64, 3>,
+    SourceFn: Fn([f64; 3]) -> f64,
 {
-    pub fn new_3d(source_module: SourceModule) -> Self {
-        Self::new(source_module)
+    pub fn new_3d(source_fn: SourceFn) -> Self {
+        Self::new(source_fn)
     }
 }
 
-impl<SourceModule> PlaneMapBuilder<SourceModule, 4>
+impl<SourceFn> PlaneMapBuilder<SourceFn, 4>
 where
-    SourceModule: NoiseFn<f64, 4>,
+    SourceFn: Fn([f64; 4]) -> f64,
 {
-    pub fn new_4d(source_module: SourceModule) -> Self {
-        Self::new(source_module)
+    pub fn new_4d(source_fn: SourceFn) -> Self {
+        Self::new(source_fn)
     }
 }
 
-impl<SourceModule, const DIM: usize> PlaneMapBuilder<SourceModule, DIM>
+impl<SourceFn, const DIM: usize> PlaneMapBuilder<SourceFn, DIM>
 where
-    SourceModule: NoiseFn<f64, DIM>,
+    SourceFn: Fn([f64; DIM]) -> f64,
 {
-    pub fn new(source_module: SourceModule) -> Self {
+    pub fn new(source_fn: SourceFn) -> Self {
         PlaneMapBuilder {
             is_seamless: false,
             x_bounds: (-1.0, 1.0),
             y_bounds: (-1.0, 1.0),
             size: (100, 100),
-            source_module,
+            source_fn,
         }
     }
 
@@ -256,9 +115,9 @@ where
     }
 }
 
-impl<SourceModule, const DIM: usize> NoiseMapBuilder<SourceModule> for PlaneMapBuilder<SourceModule, DIM>
+impl<SourceFn, const DIM: usize> NoiseMapBuilder<SourceFn> for PlaneMapBuilder<SourceFn, DIM>
 where
-    SourceModule: NoiseFn<f64, DIM>,
+    SourceFn: Fn([f64; DIM]) -> f64,
 {
     fn set_size(self, width: usize, height: usize) -> Self {
         PlaneMapBuilder {
@@ -267,9 +126,9 @@ where
         }
     }
 
-    fn set_source_module(self, source_module: SourceModule) -> Self {
+    fn set_source_module(self, source_fn: SourceFn) -> Self {
         PlaneMapBuilder {
-            source_module,
+            source_fn,
             ..self
         }
     }
@@ -296,16 +155,10 @@ where
                 let current_x = self.x_bounds.0 + x_step * x as f64;
 
                 let final_value = if self.is_seamless {
-                    let sw_value = self.source_module.get(pad_array(&[current_x, current_y]));
-                    let se_value = self
-                        .source_module
-                        .get(pad_array(&[current_x + x_extent, current_y]));
-                    let nw_value = self
-                        .source_module
-                        .get(pad_array(&[current_x, current_y + y_extent]));
-                    let ne_value =
-                        self.source_module
-                            .get(pad_array(&[current_x + x_extent, current_y + y_extent]));
+                    let sw_value = (self.source_fn)(pad_array(&[current_x, current_y]));
+                    let se_value = (self.source_fn)(pad_array(&[current_x + x_extent, current_y]));
+                    let nw_value = (self.source_fn)(pad_array(&[current_x, current_y + y_extent]));
+                    let ne_value = (self.source_fn)(pad_array(&[current_x + x_extent, current_y + y_extent]));
 
                     let x_blend = 1.0 - ((current_x - self.x_bounds.0) / x_extent);
                     let y_blend = 1.0 - ((current_y - self.y_bounds.0) / y_extent);
@@ -315,7 +168,7 @@ where
 
                     interpolate::linear(y0, y1, y_blend)
                 } else {
-                    self.source_module.get(pad_array(&[current_x, current_y]))
+                    (self.source_fn)(pad_array(&[current_x, current_y]))
                 };
 
                 result_map[(x, y)] = final_value;
@@ -326,26 +179,26 @@ where
     }
 }
 
-pub struct SphereMapBuilder<SourceModule>
+pub struct SphereMapBuilder<SourceFn>
 where
-    SourceModule: NoiseFn<f64, 3>,
+    SourceFn: Fn([f64; 3]) -> f64,
 {
     latitude_bounds: (f64, f64),
     longitude_bounds: (f64, f64),
     size: (usize, usize),
-    source_module: SourceModule,
+    source_fn: SourceFn,
 }
 
-impl<SourceModule> SphereMapBuilder<SourceModule>
+impl<SourceFn> SphereMapBuilder<SourceFn>
 where
-    SourceModule: NoiseFn<f64, 3>,
+    SourceFn: Fn([f64; 3]) -> f64,
 {
-    pub fn new(source_module: SourceModule) -> Self {
+    pub fn new(source_fn: SourceFn) -> Self {
         SphereMapBuilder {
             latitude_bounds: (-1.0, 1.0),
             longitude_bounds: (-1.0, 1.0),
             size: (100, 100),
-            source_module,
+            source_fn,
         }
     }
 
@@ -386,9 +239,9 @@ where
     }
 }
 
-impl<SourceModule> NoiseMapBuilder<SourceModule> for SphereMapBuilder<SourceModule>
+impl<SourceFn> NoiseMapBuilder<SourceFn> for SphereMapBuilder<SourceFn>
 where
-    SourceModule: NoiseFn<f64, 3>,
+    SourceFn: Fn([f64; 3]) -> f64,
 {
     fn set_size(self, width: usize, height: usize) -> Self {
         SphereMapBuilder {
@@ -397,9 +250,9 @@ where
         }
     }
 
-    fn set_source_module(self, source_module: SourceModule) -> Self {
+    fn set_source_module(self, source_fn: SourceFn) -> Self {
         SphereMapBuilder {
-            source_module,
+            source_fn,
             ..self
         }
     }
@@ -427,7 +280,7 @@ where
 
                 let point = lat_lon_to_xyz(current_lat, current_lon);
 
-                result_map[(x, y)] = self.source_module.get(point);
+                result_map[(x, y)] = (self.source_fn)(point);
             }
         }
 

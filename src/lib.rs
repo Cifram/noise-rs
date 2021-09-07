@@ -15,11 +15,8 @@
 #[macro_use]
 extern crate alloc;
 
-pub use crate::noise_fns::*;
-
 pub mod core;
 mod gradient;
 pub mod math;
-mod noise_fns;
 pub mod permutationtable;
 pub mod utils;
