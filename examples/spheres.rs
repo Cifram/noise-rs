@@ -1,7 +1,7 @@
 extern crate noise;
 
 use noise::{
-    core::spheres::*,
+    spheres_2d, spheres_3d, spheres_4d,
     utils::*,
 };
 

@@ -4,9 +4,9 @@ extern crate noise;
 
 use criterion::{black_box, Criterion};
 use noise::{
-    core::open_simplex::{open_simplex_2d, open_simplex_3d, open_simplex_4d},
-    math::vectors::{Vector2, Vector3, Vector4},
-    permutationtable::PermutationTable,
+    open_simplex_2d, open_simplex_3d, open_simplex_4d,
+    Vector2, Vector3, Vector4,
+    PermutationTable,
 };
 
 criterion_group!(

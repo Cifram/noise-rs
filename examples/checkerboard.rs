@@ -3,7 +3,7 @@
 extern crate noise;
 
 use noise::{
-    core::checkerboard::*,
+    checkerboard_2d, checkerboard_3d, checkerboard_4d,
     utils::*,
 };
 

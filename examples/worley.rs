@@ -1,7 +1,9 @@
 extern crate noise;
 
 use noise::{
-    core::worley::*,
+    worley_2d_value, worley_2d_range, worley_2d_range_sqr, worley_2d_border,
+    worley_3d_value, worley_3d_range, worley_3d_range_sqr, worley_3d_border,
+    worley_4d_value, worley_4d_range, worley_4d_range_sqr, worley_4d_border,
     permutationtable::PermutationTable,
     utils::*,
 };

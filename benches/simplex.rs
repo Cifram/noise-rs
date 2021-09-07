@@ -4,12 +4,10 @@ extern crate noise;
 
 use criterion::{black_box, Criterion};
 use noise::{
-    core::simplex::{
-        simplex_2d, simplex_3d, simplex_4d,
-        simplex_2d_deriv, simplex_3d_deriv, simplex_4d_deriv,
-    },
-    math::vectors::{Vector2, Vector3, Vector4},
-    permutationtable::PermutationTable,
+    simplex_2d, simplex_3d, simplex_4d,
+    simplex_2d_deriv, simplex_3d_deriv, simplex_4d_deriv,
+    Vector2, Vector3, Vector4,
+    PermutationTable,
 };
 
 criterion_group!(

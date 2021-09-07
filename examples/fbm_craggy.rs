@@ -4,13 +4,11 @@ extern crate noise;
 
 use noise::{
     utils::*,
-    core::fbm::{
-        fbm_craggy_perlin_2d, fbm_craggy_perlin_3d, fbm_craggy_perlin_4d,
-        fbm_craggy_perlin_surflet_2d, fbm_craggy_perlin_surflet_3d, fbm_craggy_perlin_surflet_4d,
-        fbm_craggy_open_simplex_2d, fbm_craggy_open_simplex_3d, fbm_craggy_open_simplex_4d,
-        fbm_craggy_simplex_2d, fbm_craggy_simplex_3d, fbm_craggy_simplex_4d,
-    },
-    permutationtable::PermutationTable,
+    fbm_craggy_perlin_2d, fbm_craggy_perlin_3d, fbm_craggy_perlin_4d,
+    fbm_craggy_perlin_surflet_2d, fbm_craggy_perlin_surflet_3d, fbm_craggy_perlin_surflet_4d,
+    fbm_craggy_open_simplex_2d, fbm_craggy_open_simplex_3d, fbm_craggy_open_simplex_4d,
+    fbm_craggy_simplex_2d, fbm_craggy_simplex_3d, fbm_craggy_simplex_4d,
+    PermutationTable,
 };
 
 fn output<F, const DIM: usize>(func: F, name: &str)

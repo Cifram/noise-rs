@@ -2,7 +2,11 @@
 
 extern crate noise;
 
-use noise::{utils::*, core::value::{value_2d, value_3d, value_4d}, permutationtable::PermutationTable};
+use noise::{
+    utils::*,
+    value_2d, value_3d, value_4d,
+    PermutationTable,
+};
 
 fn main() {
     let hasher = PermutationTable::new(0);

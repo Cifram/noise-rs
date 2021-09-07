@@ -4,9 +4,9 @@ extern crate noise;
 
 use criterion::{black_box, Criterion};
 use noise::{
-    core::worley::{worley_3d_value, worley_3d_range, worley_3d_range_sqr, worley_3d_border},
-    math::vectors::Vector3,
-    permutationtable::PermutationTable,
+    worley_3d_value, worley_3d_range, worley_3d_range_sqr, worley_3d_border,
+    Vector3,
+    PermutationTable,
 };
 
 criterion_group!(bench_worley_3d,

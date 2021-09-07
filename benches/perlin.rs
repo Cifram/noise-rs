@@ -4,9 +4,9 @@ extern crate noise;
 
 use criterion::{black_box, Criterion};
 use noise::{
-    core::perlin::{perlin_2d, perlin_3d, perlin_4d},
-    math::vectors::{Vector2, Vector3, Vector4},
-    permutationtable::PermutationTable,
+    perlin_2d, perlin_3d, perlin_4d,
+    Vector2, Vector3, Vector4,
+    PermutationTable,
 };
 
 criterion_group!(perlin, bench_perlin2, bench_perlin3, bench_perlin4);

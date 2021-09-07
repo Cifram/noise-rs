@@ -20,3 +20,7 @@ mod gradient;
 pub mod math;
 pub mod permutationtable;
 pub mod utils;
+
+pub use crate::core::*;
+pub use crate::math::*;
+pub use crate::permutationtable::*;

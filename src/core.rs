@@ -9,3 +9,15 @@ pub mod spheres;
 pub mod super_simplex;
 pub mod value;
 pub mod worley;
+
+pub use crate::checkerboard::*;
+pub use crate::displace::*;
+pub use crate::fbm::*;
+pub use crate::open_simplex::*;
+pub use crate::perlin::*;
+pub use crate::perlin_surflet::*;
+pub use crate::simplex::*;
+pub use crate::spheres::*;
+pub use crate::super_simplex::*;
+pub use crate::value::*;
+pub use crate::worley::*;

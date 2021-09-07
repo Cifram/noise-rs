@@ -4,8 +4,8 @@ extern crate noise;
 
 use noise::{
     utils::*,
-    core::perlin_surflet::{perlin_surflet_2d, perlin_surflet_3d, perlin_surflet_4d},
-    permutationtable::PermutationTable
+    perlin_surflet_2d, perlin_surflet_3d, perlin_surflet_4d,
+    PermutationTable
 };
 
 fn main() {

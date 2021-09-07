@@ -4,9 +4,9 @@ extern crate noise;
 
 use noise::{
     utils::*,
-    core::displace::{turbulance_perlin_2d, turbulance_perlin_3d, turbulance_perlin_4d},
-    core::perlin::{perlin_2d, perlin_3d, perlin_4d},
-    permutationtable::PermutationTable
+    turbulance_perlin_2d, turbulance_perlin_3d, turbulance_perlin_4d,
+    perlin_2d, perlin_3d, perlin_4d,
+    PermutationTable
 };
 
 fn main() {

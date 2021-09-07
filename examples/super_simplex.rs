@@ -4,8 +4,8 @@ extern crate noise;
 
 use noise::{
     utils::*,
-    core::super_simplex::{super_simplex_2d, super_simplex_3d},
-    permutationtable::PermutationTable
+    super_simplex_2d, super_simplex_3d,
+    PermutationTable
 };
 
 fn main() {

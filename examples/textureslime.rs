@@ -1,13 +1,9 @@
 extern crate noise;
 
 use noise::{
-    permutationtable::PermutationTable,
-    core::{
-        displace::displace_3d,
-        fbm::{fbm_ridged_perlin_3d, fbm_perlin_3d_variant},
-        perlin::{perlin_3d, perlin_3d_variant},
-    },
-    math::{vectors::Vector3},
+    PermutationTable,
+    displace_3d, fbm_ridged_perlin_3d, fbm_perlin_3d_variant, perlin_3d, perlin_3d_variant,
+    Vector3,
     select,
     utils::*,
 };
