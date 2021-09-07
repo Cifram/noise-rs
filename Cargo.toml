@@ -77,6 +77,10 @@ name = "fbm"
 required-features = ["image"]
 
 [[example]]
+name = "fbm_billow"
+required-features = ["image"]
+
+[[example]]
 name = "fbm_craggy"
 required-features = ["image"]
 

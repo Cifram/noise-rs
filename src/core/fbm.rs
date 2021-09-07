@@ -30,8 +30,26 @@ fbm!(fbm_2d, Vector2);
 fbm!(fbm_3d, Vector3);
 fbm!(fbm_4d, Vector4);
 
-macro_rules! fbm_ridged(
+macro_rules! fbm_billow(
     ($name:ident, $vector_type:ident, $fbm_fn:ident) => {
+        pub fn $name<F>(
+            point: $vector_type<f64>,
+            frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F
+        ) -> f64
+        where
+            F: Fn($vector_type<f64>, usize) -> f64
+        {
+            $fbm_fn(point, frequency, lacunarity, persistence, octaves, |point, octave| noise_fn(point, octave).abs() * 2.0 - 1.0)
+        }
+    }
+);
+
+fbm_billow!(fbm_billow_2d, Vector2, fbm_2d);
+fbm_billow!(fbm_billow_3d, Vector3, fbm_3d);
+fbm_billow!(fbm_billow_4d, Vector4, fbm_4d);
+
+macro_rules! fbm_ridged(
+    ($name:ident, $vector_type:ident) => {
         pub fn $name<F>(
             point: $vector_type<f64>,
             frequency: f64, lacunarity: f64, persistence: f64, octaves: usize, noise_fn: F
@@ -56,9 +74,9 @@ macro_rules! fbm_ridged(
     }
 );
 
-fbm_ridged!(fbm_ridged_2d, Vector2, fbm_weighted_2d);
-fbm_ridged!(fbm_ridged_3d, Vector3, fbm_weighted_3d);
-fbm_ridged!(fbm_ridged_4d, Vector4, fbm_weighted_4d);
+fbm_ridged!(fbm_ridged_2d, Vector2);
+fbm_ridged!(fbm_ridged_3d, Vector3);
+fbm_ridged!(fbm_ridged_4d, Vector4);
 
 macro_rules! fbm_craggy(
     ($name:ident, $vector_type:ident, $fbm_fn:ident) => {
@@ -121,6 +139,19 @@ specialized_fbm!(fbm_perlin_surflet_4d, fbm_perlin_surflet_4d_variant, Vector4, 
 specialized_fbm!(fbm_simplex_2d, fbm_simplex_2d_variant, Vector2, fbm_2d, simplex_2d_variant);
 specialized_fbm!(fbm_simplex_3d, fbm_simplex_3d_variant, Vector3, fbm_3d, simplex_3d_variant);
 specialized_fbm!(fbm_simplex_4d, fbm_simplex_4d_variant, Vector4, fbm_4d, simplex_4d_variant);
+
+specialized_fbm!(fbm_billow_perlin_2d, fbm_billow_perlin_2d_variant, Vector2, fbm_billow_2d, perlin_2d_variant);
+specialized_fbm!(fbm_billow_perlin_3d, fbm_billow_perlin_3d_variant, Vector3, fbm_billow_3d, perlin_3d_variant);
+specialized_fbm!(fbm_billow_perlin_4d, fbm_billow_perlin_4d_variant, Vector4, fbm_billow_4d, perlin_4d_variant);
+specialized_fbm!(fbm_billow_open_simplex_2d, fbm_billow_open_simplex_2d_variant, Vector2, fbm_billow_2d, open_simplex_2d_variant);
+specialized_fbm!(fbm_billow_open_simplex_3d, fbm_billow_open_simplex_3d_variant, Vector3, fbm_billow_3d, open_simplex_3d_variant);
+specialized_fbm!(fbm_billow_open_simplex_4d, fbm_billow_open_simplex_4d_variant, Vector4, fbm_billow_4d, open_simplex_4d_variant);
+specialized_fbm!(fbm_billow_perlin_surflet_2d, fbm_billow_perlin_surflet_2d_variant, Vector2, fbm_billow_2d, perlin_surflet_2d_variant);
+specialized_fbm!(fbm_billow_perlin_surflet_3d, fbm_billow_perlin_surflet_3d_variant, Vector3, fbm_billow_3d, perlin_surflet_3d_variant);
+specialized_fbm!(fbm_billow_perlin_surflet_4d, fbm_billow_perlin_surflet_4d_variant, Vector4, fbm_billow_4d, perlin_surflet_4d_variant);
+specialized_fbm!(fbm_billow_simplex_2d, fbm_billow_simplex_2d_variant, Vector2, fbm_billow_2d, simplex_2d_variant);
+specialized_fbm!(fbm_billow_simplex_3d, fbm_billow_simplex_3d_variant, Vector3, fbm_billow_3d, simplex_3d_variant);
+specialized_fbm!(fbm_billow_simplex_4d, fbm_billow_simplex_4d_variant, Vector4, fbm_billow_4d, simplex_4d_variant);
 
 specialized_fbm!(fbm_ridged_perlin_2d, fbm_ridged_perlin_2d_variant, Vector2, fbm_ridged_2d, perlin_2d_variant);
 specialized_fbm!(fbm_ridged_perlin_3d, fbm_ridged_perlin_3d_variant, Vector3, fbm_ridged_3d, perlin_3d_variant);

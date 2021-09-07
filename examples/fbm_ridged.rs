@@ -1,4 +1,4 @@
-//! An example of using perlin noise
+//! Example of using fbm ridged noise
 
 extern crate noise;
 
