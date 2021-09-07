@@ -1,48 +1,37 @@
 extern crate noise;
 
-use noise::{core::worley::ReturnType, utils::*, *};
+use noise::{
+    permutationtable::PermutationTable,
+    core::{
+        displace::displace_3d,
+        worley::worley_3d_range,
+        fbm::{fbm_perlin_3d, fbm_perlin_3d_variant},
+    },
+    math::vectors::Vector3,
+    utils::*
+};
+
+fn granite_noise(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
+    // Perturb the granite texture to add realism.
+    let point = displace_3d(point, |point, dim| fbm_perlin_3d_variant(point, dim, 4.0, 2.0, 0.5, 6, hasher) * (1.0/8.0));
+
+    // Primary granite texture, this generates the "roughness" of the texture.
+    let primary_granite = fbm_perlin_3d(point, 12.0, 2.18359375, 0.625, 6, hasher);
+
+    // Square the granite texture when it's positive, to shrink the highest areas.
+    let primary_granite = if primary_granite > 0.0 { primary_granite * primary_granite } else { primary_granite };
+
+    // Use worley noise to produce small grains for the granite texture.
+    let grains = worley_3d_range(point * 16.0, hasher) * -0.5;
+
+    // Combine the primary texture with the small grain texture.
+    primary_granite + grains
+}
 
 fn main() {
-    // Primary granite texture. This generates the "roughness" of the texture
-    // when lit by a light source.
-    let primary_granite = Billow::new(0)
-        .set_frequency(8.0)
-        .set_persistence(0.625)
-        .set_lacunarity(2.18359375)
-        .set_octaves(6);
-
-    // Use Worley polygons to produce the small grains for the granite texture.
-    let base_grains = Worley::new(1)
-        .set_frequency(16.0)
-        .set_return_type(ReturnType::Distance);
-
-    // Scale the small grain values so that they can be added to the base
-    // granite texture. Worley polygons normally generate pits, so apply a
-    // negative scaling factor to produce bumps instead.
-    let scaled_grains = ScaleBias::new(base_grains).set_scale(-0.5).set_bias(0.0);
-
-    // Combine the primary granite texture with the small grain texture.
-    let combined_granite = Add::new(primary_granite, scaled_grains);
-
-    // Finally, perturb the granite texture to add realism.
-    let final_granite = Turbulence::new(combined_granite)
-        .set_seed(2)
-        .set_frequency(4.0)
-        .set_power(1.0 / 8.0)
-        .set_roughness(6);
-
-    let planar_texture = PlaneMapBuilder::new(&final_granite)
+    let hasher = PermutationTable::new(0);
+    let planar_texture = PlaneMapBuilder::new_fn(|point| granite_noise(point.into(), &hasher))
         .set_size(1024, 1024)
-        .build();
-
-    let seamless_texture = PlaneMapBuilder::new(&final_granite)
-        .set_size(1024, 1024)
-        .set_is_seamless(true)
-        .build();
-
-    let sphere_texture = SphereMapBuilder::new(final_granite)
-        .set_size(1024, 512)
-        .set_bounds(-90.0, 90.0, -180.0, 180.0)
         .build();
 
     // Create a gray granite palette. Black and pink appear at either ends of the palette; these
@@ -62,12 +51,4 @@ fn main() {
     renderer
         .render(&planar_texture)
         .write_to_file("texture_granite_planar.png");
-
-    renderer
-        .render(&seamless_texture)
-        .write_to_file("texture_granite_seamless.png");
-
-    renderer
-        .render(&sphere_texture)
-        .write_to_file("texture_granite_sphere.png");
 }
