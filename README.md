@@ -69,12 +69,12 @@ See the individual function pages for their descriptions, and the [examples][exa
 
 ```rust
 use noise::Fbm;
-use noise::utils::PlaneMapBuilder;
+use noise::utils::NoiseImageBuilder;
 
 fn main() {
   let fbm = Fbm::new();
 
-  PlaneMapBuilder::new(&fbm)
+  NoiseImageBuilder::new(&fbm)
           .set_size(1000, 1000)
           .set_x_bounds(-5.0, 5.0)
           .set_y_bounds(-5.0, 5.0)

@@ -1,4 +1,124 @@
-use alloc::vec::Vec;
+use std::{fs, path::Path};
+
+pub struct NoiseImageBuilder<SourceFn, const DIM: usize>
+where
+    SourceFn: Fn([f64; DIM]) -> f64,
+{
+    x_bounds: (f64, f64),
+    y_bounds: (f64, f64),
+    size: (usize, usize),
+    source_fn: SourceFn,
+    gradient: Option<ColorGradient>,
+}
+
+impl<SourceFn, const DIM: usize> NoiseImageBuilder<SourceFn, DIM>
+where
+    SourceFn: Fn([f64; DIM]) -> f64,
+{
+    pub fn new(source_fn: SourceFn) -> Self {
+        NoiseImageBuilder {
+            x_bounds: (-1.0, 1.0),
+            y_bounds: (-1.0, 1.0),
+            size: (100, 100),
+            source_fn,
+            gradient: None,
+        }
+    }
+
+    pub fn set_x_bounds(self, lower_x_bound: f64, upper_x_bound: f64) -> Self {
+        NoiseImageBuilder {
+            x_bounds: (lower_x_bound, upper_x_bound),
+            ..self
+        }
+    }
+
+    pub fn set_y_bounds(self, lower_y_bound: f64, upper_y_bound: f64) -> Self {
+        NoiseImageBuilder {
+            y_bounds: (lower_y_bound, upper_y_bound),
+            ..self
+        }
+    }
+
+    pub fn set_size(self, width: usize, height: usize) -> Self {
+        NoiseImageBuilder {
+            size: (width, height),
+            ..self
+        }
+    }
+
+    pub fn set_gradient(self, gradient: ColorGradient) -> Self {
+        NoiseImageBuilder {
+            gradient: Some(gradient),
+            ..self
+        }
+    }
+
+    pub fn write_to_file(&self, filename: &str) {
+        // Create the output directory for the images, if it doesn't already exist
+        let target_dir = Path::new("example_images/");
+
+        if !target_dir.exists() {
+            fs::create_dir(target_dir).expect("failed to create example_images directory");
+        }
+
+        //concatenate the directory to the filename string
+        let directory: String = "example_images/".to_owned();
+        let file_path = directory + filename;
+
+        let (width, height) = self.size;
+
+        let x_extent = self.x_bounds.1 - self.x_bounds.0;
+        let y_extent = self.y_bounds.1 - self.y_bounds.0;
+
+        let x_step = x_extent / width as f64;
+        let y_step = y_extent / height as f64;
+
+        if let Some(gradient) = &self.gradient {
+            let mut pixels: Vec<u8> = vec![0; width*height*4];
+            for y in 0..height {
+                let current_y = self.y_bounds.0 + y_step * y as f64;
+                for x in 0..width {
+                    let current_x = self.x_bounds.0 + x_step * x as f64;
+                    let noise_value = (self.source_fn)(pad_array(&[current_x, current_y]));
+                    let color = gradient.get_color(noise_value);
+                    let index = (y*width + x)*4;
+                    pixels[index] = color[0];
+                    pixels[index+1] = color[1];
+                    pixels[index+2] = color[2];
+                    pixels[index+3] = color[3];
+                }
+            }
+
+            let _ = image::save_buffer(
+                &Path::new(&file_path),
+                &*pixels,
+                self.size.0 as u32,
+                self.size.1 as u32,
+                image::ColorType::Rgba8,
+            );
+        } else {
+            let mut pixels: Vec<u8> = vec![0; width*height];
+            for y in 0..height {
+                let current_y = self.y_bounds.0 + y_step * y as f64;
+                for x in 0..width {
+                    let current_x = self.x_bounds.0 + x_step * x as f64;
+                    let noise_value = (self.source_fn)(pad_array(&[current_x, current_y]));
+                    pixels[y*width + x] = ((noise_value * 0.5 + 0.5).clamp(0.0, 1.0) * 255.0) as u8;
+                }
+            }
+
+            let _ = image::save_buffer(
+                &Path::new(&file_path),
+                &*pixels,
+                self.size.0 as u32,
+                self.size.1 as u32,
+                image::ColorType::L8,
+            );
+        }
+
+        println!("\nFinished generating {}", filename);
+    }
+}
 
 pub type Color = [u8; 4];
 
@@ -151,43 +271,23 @@ impl ColorGradient {
 }
 
 fn interpolate_color(color0: Color, color1: Color, alpha: f64) -> Color {
-    fn blend_channel(channel0: u8, channel1: u8, alpha: f64) -> u8 {
-        let c0 = (f64::from(channel0)) / 255.0;
-        let c1 = (f64::from(channel1)) / 255.0;
-
-        ((c1 - c0).mul_add(alpha, c0) * 255.0) as u8
+    fn blend_channel(a: u8, b: u8, alpha: f64) -> u8 {
+        let a = a as f64;
+        let b = b as f64;
+        (b * alpha + a * (1.0 - alpha)) as u8
     }
-
-    let mut color = Color::default();
-
-    for i in 0..color.len() {
-        color[i] = blend_channel(color0[i], color1[i], alpha);
-    }
-
-    color
+    [
+        blend_channel(color0[0], color1[0], alpha),
+        blend_channel(color0[1], color1[1], alpha),
+        blend_channel(color0[2], color1[2], alpha),
+        blend_channel(color0[3], color1[3], alpha),
+    ]
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn linerp_color_1() {
-        assert_eq!(
-            [0, 127, 255, 0],
-            interpolate_color([0, 0, 255, 0], [0, 255, 255, 0], 0.5)
-        );
+fn pad_array<const SIZE: usize>(values: &[f64]) -> [f64; SIZE] {
+    let mut result = [0.0; SIZE];
+    for i in 0..values.len().min(SIZE) {
+        result[i] = values[i];
     }
-
-    #[test]
-    fn color_gradient_1() {
-        let gradient = ColorGradient::new();
-
-        let gradient = gradient
-            .clear_gradient()
-            .add_gradient_point(0.0, [0, 0, 0, 0])
-            .add_gradient_point(1.0, [255, 255, 255, 255]);
-
-        assert_eq!([127, 127, 127, 127], gradient.get_color(0.5));
-    }
+    result
 }

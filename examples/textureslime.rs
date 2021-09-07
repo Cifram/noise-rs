@@ -5,7 +5,7 @@ use noise::{
     displace_3d, fbm_ridged_perlin_3d, fbm_perlin_3d_variant, perlin_3d, perlin_3d_variant,
     Vector3,
     select,
-    utils::*,
+    noise_image_builder::*,
 };
 
 #[inline]
@@ -37,15 +37,6 @@ fn slime_noise(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
 fn main() {
     let hasher = PermutationTable::new(0);
 
-    let planar_texture = PlaneMapBuilder::new_fn(|point| slime_noise(point.into(), &hasher))
-        .set_size(1024, 1024)
-        .build();
-
-    let seamless_texture = PlaneMapBuilder::new_fn(|point| slime_noise(point.into(), &hasher))
-        .set_size(1024, 1024)
-        .set_is_seamless(true)
-        .build();
-
     // Create a slime palette.
     let slime_gradient = ColorGradient::new()
         .clear_gradient()
@@ -53,13 +44,8 @@ fn main() {
         .add_gradient_point(0.0, [64, 192, 64, 255])
         .add_gradient_point(1.0, [128, 255, 128, 255]);
 
-    let mut renderer = ImageRenderer::new().set_gradient(slime_gradient);
-
-    renderer
-        .render(&planar_texture)
+    NoiseImageBuilder::new(|point| slime_noise(point.into(), &hasher))
+        .set_size(1024, 1024)
+        .set_gradient(slime_gradient)
         .write_to_file("texture_slime_planar.png");
-
-    renderer
-        .render(&seamless_texture)
-        .write_to_file("texture_slime_seamless.png");
 }

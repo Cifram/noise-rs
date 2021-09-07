@@ -6,7 +6,7 @@ use noise::{
     fbm_craggy_perlin_3d, fbm_perlin_3d_variant,
     spheres_2d,
     Vector2, Vector3,
-    utils::*
+    noise_image_builder::*
 };
 
 fn wood_noise(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
@@ -36,10 +36,6 @@ fn wood_noise(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
 fn main() {
     let hasher = PermutationTable::new(0);
 
-    let planar_texture = PlaneMapBuilder::new_fn(|point| wood_noise(point.into(), &hasher))
-        .set_size(1024, 1024)
-        .build();
-
     // Create a wood palette.
     let wood_gradient = ColorGradient::new()
         .clear_gradient()
@@ -47,9 +43,8 @@ fn main() {
         .add_gradient_point(0.500, [144, 48, 6, 255])
         .add_gradient_point(1.0, [60, 10, 8, 255]);
 
-    let mut renderer = ImageRenderer::new().set_gradient(wood_gradient);
-
-    renderer
-        .render(&planar_texture)
+    NoiseImageBuilder::new(|point| wood_noise(point.into(), &hasher))
+        .set_size(1024, 1024)
+        .set_gradient(wood_gradient)
         .write_to_file("texture_wood_planar.png");
 }

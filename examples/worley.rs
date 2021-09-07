@@ -5,18 +5,17 @@ use noise::{
     worley_3d_value, worley_3d_range, worley_3d_range_sqr, worley_3d_border,
     worley_4d_value, worley_4d_range, worley_4d_range_sqr, worley_4d_border,
     permutationtable::PermutationTable,
-    utils::*,
+    noise_image_builder::*,
 };
 
 fn output<F, const DIM: usize>(closure: F, name: &str)
 where
     F: Fn([f64; DIM]) -> f64,
 {
-    PlaneMapBuilder::new_fn(closure)
+    NoiseImageBuilder::new(closure)
         .set_size(1024, 1024)
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)
-        .build()
         .write_to_file(name);
 }
 

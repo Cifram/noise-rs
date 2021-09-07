@@ -4,7 +4,7 @@ use noise::{
     PermutationTable,
     displace_3d, worley_3d_range, fbm_perlin_3d, fbm_perlin_3d_variant,
     Vector3,
-    utils::*
+    noise_image_builder::*
 };
 
 fn granite_noise(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
@@ -26,9 +26,6 @@ fn granite_noise(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
 
 fn main() {
     let hasher = PermutationTable::new(0);
-    let planar_texture = PlaneMapBuilder::new_fn(|point| granite_noise(point.into(), &hasher))
-        .set_size(1024, 1024)
-        .build();
 
     // Create a gray granite palette. Black and pink appear at either ends of the palette; these
     // colors provide the characteristic flecks in granite.
@@ -42,9 +39,8 @@ fn main() {
         .add_gradient_point(0.7500, [210, 113, 98, 255])
         .add_gradient_point(1.0000, [255, 176, 192, 255]);
 
-    let mut renderer = ImageRenderer::new().set_gradient(granite_gradient);
-
-    renderer
-        .render(&planar_texture)
+    NoiseImageBuilder::new(|point| granite_noise(point.into(), &hasher))
+        .set_size(1024, 1024)
+        .set_gradient(granite_gradient)
         .write_to_file("texture_granite_planar.png");
 }

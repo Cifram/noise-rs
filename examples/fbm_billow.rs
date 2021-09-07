@@ -3,7 +3,7 @@
 extern crate noise;
 
 use noise::{
-    utils::*,
+    noise_image_builder::*,
     fbm_billow_perlin_2d, fbm_billow_perlin_3d, fbm_billow_perlin_4d,
     fbm_billow_perlin_surflet_2d, fbm_billow_perlin_surflet_3d, fbm_billow_perlin_surflet_4d,
     fbm_billow_open_simplex_2d, fbm_billow_open_simplex_3d, fbm_billow_open_simplex_4d,
@@ -15,11 +15,10 @@ fn output<F, const DIM: usize>(func: F, name: &str)
 where
     F: Fn([f64; DIM]) -> f64
 {
-    PlaneMapBuilder::new_fn(func)
+    NoiseImageBuilder::new(func)
         .set_size(1024, 1024)
         .set_x_bounds(-5.0, 5.0)
         .set_y_bounds(-5.0, 5.0)
-        .build()
         .write_to_file(name);
 }
 

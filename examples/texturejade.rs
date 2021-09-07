@@ -4,7 +4,7 @@ use noise::{
     PermutationTable,
     displace_3d, fbm_ridged_perlin_3d, fbm_perlin_3d_variant, spheres_2d,
     Vector2, Vector3,
-    utils::*
+    noise_image_builder::*
 };
 
 fn jade_noise(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
@@ -19,10 +19,6 @@ fn jade_noise(point: Vector3<f64>, hasher: &PermutationTable) -> f64 {
 fn main() {
     let hasher = PermutationTable::new(0);
 
-    let planar_texture = PlaneMapBuilder::new_fn(|point| jade_noise(point.into(), &hasher))
-        .set_size(1024, 1024)
-        .build();
-
     // Create a jade palette.
     let jade_gradient = ColorGradient::new()
         .clear_gradient()
@@ -32,9 +28,8 @@ fn main() {
         .add_gradient_point(0.375, [78, 154, 115, 255])
         .add_gradient_point(1.000, [29, 135, 102, 255]);
 
-    let mut renderer = ImageRenderer::new().set_gradient(jade_gradient);
-
-    renderer
-        .render(&planar_texture)
+    NoiseImageBuilder::new(|point| jade_noise(point.into(), &hasher))
+        .set_size(1024, 1024)
+        .set_gradient(jade_gradient)
         .write_to_file("texture_jade_planar.png");
 }
