@@ -96,21 +96,3 @@ where
         self.map(|x| x.map_quintic())
     }
 }
-
-// impl<T, V, const DIM: usize> Quintic for V
-// where
-//     T: Float + Quintic,
-//     V: Vector<T, DIM>,
-// {
-//     fn map_quintic(&self) -> Self {
-//         self.map(|x| x.map_quintic())
-//     }
-// }
-
-// #[inline(always)]
-// pub fn quintic<F>(x: F) -> F
-//     where
-//         F: Float,
-// {
-//     x * x * x * (x * (x * F::from(6.0).unwrap() - F::from(15.0).unwrap()) + F::from(10.0).unwrap())
-// }
