@@ -79,9 +79,17 @@ macro_rules! vector_type {
             #[inline]
             pub fn magnitude(self) -> T
             where
-                T: Zero + AddAssign + Mul + Real,
+                T: Zero + AddAssign + Real,
             {
                 self.magnitude_squared().sqrt()
+            }
+
+            #[inline]
+            pub fn normalize(self) -> Self
+            where
+                T: Zero + AddAssign + Real,
+            {
+                self / self.magnitude()
             }
 
             #[inline]
