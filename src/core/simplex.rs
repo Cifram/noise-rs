@@ -266,40 +266,20 @@ where
     const SKEW_FACTOR_4D: f64 = 0.309016994;
     const UNSKEW_FACTOR_4D: f64 = 0.138196601;
 
-    // Using the Vector4 struct for all the internal logic causes a significant
-    // performance regression, for some reason, so we instead break it out into
-    // it's component elements and do all the calculations directly on those.
-    let (x, y, z, w) = point.into();
-
     // Skew the (x,y,z,w) space to determine which cell of 24 simplices we're in
     // Factor for 4D skewing
-    let skew = (x + y + z + w) * SKEW_FACTOR_4D;
-    let skewedx = x + skew;
-    let skewedy = y + skew;
-    let skewedz = z + skew;
-    let skewedw = w + skew;
-    let floorx = skewedx.floor();
-    let floory = skewedy.floor();
-    let floorz = skewedz.floor();
-    let floorw = skewedw.floor();
-    let cellx = floorx as isize;
-    let celly = floory as isize;
-    let cellz = floorz as isize;
-    let cellw = floorw as isize;
+    let skew = point.sum() * SKEW_FACTOR_4D;
+    let skewed = point + skew;
+    let cell = skewed.floor_to_isize();
+    let floor = cell.numcast::<f64>().unwrap();
 
     // Factor for 4D unskewing
-    let unskew = (floorx + floory + floorz + floorw) * UNSKEW_FACTOR_4D;
+    let unskew = floor.sum() * UNSKEW_FACTOR_4D;
     // Unskew the cell origin back to (x,y,z,w) space
-    let unskewedx = floorx - unskew;
-    let unskewedy = floory - unskew;
-    let unskewedz = floorz - unskew;
-    let unskewedw = floorw - unskew;
+    let unskewed = floor - unskew;
 
     // The x,y,z,w distances from the cell origin
-    let distance1x = x - unskewedx;
-    let distance1y = y - unskewedy;
-    let distance1z = z - unskewedz;
-    let distance1w = w - unskewedw;
+    let corner_offset1 = point - unskewed;
 
     // For the 4D case, the simplex is a 4D shape I won't even try to describe.
     // To find out which of the 24 possible simplices we're in, we need to
@@ -309,12 +289,12 @@ where
     // First, six pair-wise comparisons are performed between each possible pair
     // of the four coordinates, and then the results are used to add up binary
     // bits for an integer index into a precomputed lookup table, simplex[].
-    let c1 = if distance1x > distance1y { 32 } else { 0 };
-    let c2 = if distance1x > distance1z { 16 } else { 0 };
-    let c3 = if distance1y > distance1z { 8 } else { 0 };
-    let c4 = if distance1x > distance1w { 4 } else { 0 };
-    let c5 = if distance1y > distance1w { 2 } else { 0 };
-    let c6 = if distance1z > distance1w { 1 } else { 0 };
+    let c1 = if corner_offset1.x > corner_offset1.y { 32 } else { 0 };
+    let c2 = if corner_offset1.x > corner_offset1.z { 16 } else { 0 };
+    let c3 = if corner_offset1.y > corner_offset1.z { 8 } else { 0 };
+    let c4 = if corner_offset1.x > corner_offset1.w { 4 } else { 0 };
+    let c5 = if corner_offset1.y > corner_offset1.w { 2 } else { 0 };
+    let c6 = if corner_offset1.z > corner_offset1.w { 1 } else { 0 };
     let c = c1 | c2 | c3 | c4 | c5 | c6; // '|' is mostly faster than '+'
 
     // These are the integer offsets of the other 3 simplex corners.
@@ -323,189 +303,101 @@ where
     // impossible. Only the 24 indices which have non-zero entries make any sense.
     // We use a thresholding to set the coordinates in turn from the largest magnitude.
     // The number 3 in the "simplex" array is at the position of the largest coordinate.
-    let order1x = if SIMPLEX[c][0] >= 3 { 1 } else { 0 };
-    let order1y = if SIMPLEX[c][1] >= 3 { 1 } else { 0 };
-    let order1z = if SIMPLEX[c][2] >= 3 { 1 } else { 0 };
-    let order1w = if SIMPLEX[c][3] >= 3 { 1 } else { 0 };
+    let order1 = Vector4::from(SIMPLEX[c]).map(|n| if n >= 3 { 1 } else { 0 });
     // The number 2 in the "simplex" array is at the second largest coordinate.
-    let order2x = if SIMPLEX[c][0] >= 2 { 1 } else { 0 };
-    let order2y = if SIMPLEX[c][1] >= 2 { 1 } else { 0 };
-    let order2z = if SIMPLEX[c][2] >= 2 { 1 } else { 0 };
-    let order2w = if SIMPLEX[c][3] >= 2 { 1 } else { 0 };
+    let order2 = Vector4::from(SIMPLEX[c]).map(|n| if n >= 2 { 1 } else { 0 });
     // The number 1 in the "simplex" array is at the second smallest coordinate.
-    let order3x = if SIMPLEX[c][0] >= 1 { 1 } else { 0 };
-    let order3y = if SIMPLEX[c][1] >= 1 { 1 } else { 0 };
-    let order3z = if SIMPLEX[c][2] >= 1 { 1 } else { 0 };
-    let order3w = if SIMPLEX[c][3] >= 1 { 1 } else { 0 };
+    let order3 = Vector4::from(SIMPLEX[c]).map(|n| if n >= 1 { 1 } else { 0 });
     // The fifth corner has all coordinate offsets = 1, so no need to look that up.
 
     // Offsets for second corner in (x,y,z,w) coords
-    let distance2x = distance1x - order1x as f64 + UNSKEW_FACTOR_4D;
-    let distance2y = distance1y - order1y as f64 + UNSKEW_FACTOR_4D;
-    let distance2z = distance1z - order1z as f64 + UNSKEW_FACTOR_4D;
-    let distance2w = distance1w - order1w as f64 + UNSKEW_FACTOR_4D;
+    let corner_offset2 = corner_offset1 - order1.numcast().unwrap() + UNSKEW_FACTOR_4D;
     // Offsets for third corner in (x,y,z,w) coords
-    let distance3x = distance1x - order2x as f64 + 2.0 * UNSKEW_FACTOR_4D;
-    let distance3y = distance1y - order2y as f64 + 2.0 * UNSKEW_FACTOR_4D;
-    let distance3z = distance1z - order2z as f64 + 2.0 * UNSKEW_FACTOR_4D;
-    let distance3w = distance1w - order2w as f64 + 2.0 * UNSKEW_FACTOR_4D;
+    let corner_offset3 = corner_offset1 - order2.numcast().unwrap() + 2.0 * UNSKEW_FACTOR_4D;
     // Offsets for fourth corner in (x,y,z,w) coords
-    let distance4x = distance1x - order3x as f64 + 3.0 * UNSKEW_FACTOR_4D;
-    let distance4y = distance1y - order3y as f64 + 3.0 * UNSKEW_FACTOR_4D;
-    let distance4z = distance1z - order3z as f64 + 3.0 * UNSKEW_FACTOR_4D;
-    let distance4w = distance1w - order3w as f64 + 3.0 * UNSKEW_FACTOR_4D;
+    let corner_offset4 = corner_offset1 - order3.numcast().unwrap() + 3.0 * UNSKEW_FACTOR_4D;
     // Offsets for last corner in (x,y,z,w) coords
-    let distance5x = distance1x - 1.0 + 4.0 * UNSKEW_FACTOR_4D;
-    let distance5y = distance1y - 1.0 + 4.0 * UNSKEW_FACTOR_4D;
-    let distance5z = distance1z - 1.0 + 4.0 * UNSKEW_FACTOR_4D;
-    let distance5w = distance1w - 1.0 + 4.0 * UNSKEW_FACTOR_4D;
+    let corner_offset5 = corner_offset1 - 1.0 + 4.0 * UNSKEW_FACTOR_4D;
 
     // Calculate gradient indexes for each corner
-    let gi1 = hasher([cellx, celly, cellz, cellw]);
-    let gi2 = hasher([cellx + order1x, celly + order1y, cellz + order1z, cellw + order1w]);
-    let gi3 = hasher([cellx + order2x, celly + order2y, cellz + order2z, cellw + order2w]);
-    let gi4 = hasher([cellx + order3x, celly + order3y, cellz + order3z, cellw + order3w]);
-    let gi5 = hasher([cellx + 1, celly + 1, cellz + 1, cellw + 1]);
+    let gi1 = hasher(cell.into());
+    let gi2 = hasher((cell + order1).into());
+    let gi3 = hasher((cell + order2).into());
+    let gi4 = hasher((cell + order3).into());
+    let gi5 = hasher((cell + 1).into());
 
     struct SurfletComponents {
         value: f64,
         t: f64,
         t2: f64,
         t4: f64,
-        gradx: f64,
-        grady: f64,
-        gradz: f64,
-        gradw: f64,
+        grad: Vector4<f64>,
     }
 
-    fn surflet(grad_index: usize, x: f64, y: f64, z: f64, w: f64) -> SurfletComponents {
-        let t = 0.6 - (x*x + y*y + z*z + w*w);
+    #[inline(always)]
+    fn surflet(grad_index: usize, point: Vector4<f64>) -> SurfletComponents {
+        let t = 1.0 - point.magnitude_squared() * 2.0;
 
         if t > 0.0 {
-            let [gradx, grady, gradz, gradw] = gradient::grad4(grad_index);
+            let grad = gradient::grad4(grad_index).into();
             let t2 = t * t;
             let t4 = t2 * t2;
 
             SurfletComponents {
-                value: t4 * (gradx*x + grady*y + gradz*z + gradw*w),
+                value: (2.0 * t2 + t4) * point.dot(grad),
                 t, t2, t4,
-                gradx, grady, gradz, gradw,
+                grad,
             }
         } else {
             // No influence
             SurfletComponents {
                 value: 0.0,
                 t: 0.0, t2: 0.0, t4: 0.0,
-                gradx: 0.0, grady: 0.0, gradz: 0.0, gradw: 0.0,
+                grad: Vector4::zero(),
             }
         }
     }
 
-    /* Calculate the contribution from the five corners */
-    let corner1 = surflet(gi1, distance1x, distance1y, distance1z, distance1w);
-    let corner2 = surflet(gi2, distance2x, distance2y, distance2z, distance2w);
-    let corner3 = surflet(gi3, distance3x, distance3y, distance3z, distance3w);
-    let corner4 = surflet(gi4, distance4x, distance4y, distance4z, distance4w);
-    let corner5 = surflet(gi5, distance5x, distance5y, distance5z, distance5w);
+    // Calculate the contribution from the five corners
+    let corner1 = surflet(gi1, corner_offset1);
+    let corner2 = surflet(gi2, corner_offset2);
+    let corner3 = surflet(gi3, corner_offset3);
+    let corner4 = surflet(gi4, corner_offset4);
+    let corner5 = surflet(gi5, corner_offset5);
 
     // Sum up and scale the result to cover the range [-1,1]
-    let noise =
-        27.0 * (corner1.value + corner2.value + corner3.value + corner4.value + corner5.value); // TODO: The scale factor is preliminary!
+    let noise = corner1.value + corner2.value + corner3.value + corner4.value + corner5.value; // TODO: The scale factor is preliminary!
 
-    /*  A straight, unoptimised calculation would be like:
-     *    dnoise_dx = -8.0 * t20 * t0 * x0 * dot(gx0, gy0, gz0, gw0, x0, y0, z0, w0) + t40 * gx0;
-     *    dnoise_dy = -8.0 * t20 * t0 * y0 * dot(gx0, gy0, gz0, gw0, x0, y0, z0, w0) + t40 * gy0;
-     *    dnoise_dz = -8.0 * t20 * t0 * z0 * dot(gx0, gy0, gz0, gw0, x0, y0, z0, w0) + t40 * gz0;
-     *    dnoise_dw = -8.0 * t20 * t0 * w0 * dot(gx0, gy0, gz0, gw0, x0, y0, z0, w0) + t40 * gw0;
-     *    dnoise_dx += -8.0 * t21 * t1 * x1 * dot(gx1, gy1, gz1, gw1, x1, y1, z1, w1) + t41 * gx1;
-     *    dnoise_dy += -8.0 * t21 * t1 * y1 * dot(gx1, gy1, gz1, gw1, x1, y1, z1, w1) + t41 * gy1;
-     *    dnoise_dz += -8.0 * t21 * t1 * z1 * dot(gx1, gy1, gz1, gw1, x1, y1, z1, w1) + t41 * gz1;
-     *    dnoise_dw += -8.0 * t21 * t1 * w1 * dot(gx1, gy1, gz1, gw1, x1, y1, z1, w1) + t41 * gw1;
-     *    dnoise_dx += -8.0 * t22 * t2 * x2 * dot(gx2, gy2, gz2, gw2, x2, y2, z2, w2) + t42 * gx2;
-     *    dnoise_dy += -8.0 * t22 * t2 * y2 * dot(gx2, gy2, gz2, gw2, x2, y2, z2, w2) + t42 * gy2;
-     *    dnoise_dz += -8.0 * t22 * t2 * z2 * dot(gx2, gy2, gz2, gw2, x2, y2, z2, w2) + t42 * gz2;
-     *    dnoise_dw += -8.0 * t22 * t2 * w2 * dot(gx2, gy2, gz2, gw2, x2, y2, z2, w2) + t42 * gw2;
-     *    dnoise_dx += -8.0 * t23 * t3 * x3 * dot(gx3, gy3, gz3, gw3, x3, y3, z3, w3) + t43 * gx3;
-     *    dnoise_dy += -8.0 * t23 * t3 * y3 * dot(gx3, gy3, gz3, gw3, x3, y3, z3, w3) + t43 * gy3;
-     *    dnoise_dz += -8.0 * t23 * t3 * z3 * dot(gx3, gy3, gz3, gw3, x3, y3, z3, w3) + t43 * gz3;
-     *    dnoise_dw += -8.0 * t23 * t3 * w3 * dot(gx3, gy3, gz3, gw3, x3, y3, z3, w3) + t43 * gw3;
-     *    dnoise_dx += -8.0 * t24 * t4 * x4 * dot(gx4, gy4, gz4, gw4, x4, y4, z4, w4) + t44 * gx4;
-     *    dnoise_dy += -8.0 * t24 * t4 * y4 * dot(gx4, gy4, gz4, gw4, x4, y4, z4, w4) + t44 * gy4;
-     *    dnoise_dz += -8.0 * t24 * t4 * z4 * dot(gx4, gy4, gz4, gw4, x4, y4, z4, w4) + t44 * gz4;
-     *    dnoise_dw += -8.0 * t24 * t4 * w4 * dot(gx4, gy4, gz4, gw4, x4, y4, z4, w4) + t44 * gw4;
-     */
-    let temp0 = corner1.t2 * corner1.t *
-        (corner1.gradx*distance1x + corner1.grady*distance1y + corner1.gradz*distance1z + corner1.gradw*distance1w);
-    let mut dnoisex = distance1x * temp0;
-    let mut dnoisey = distance1y * temp0;
-    let mut dnoisez = distance1z * temp0;
-    let mut dnoisew = distance1w * temp0;
+    // A straight, unoptimised calculation would be like:
+    //   dnoise_dx = -8.0 * t20 * t0 * x0 * dot(gx0, gy0, gz0, gw0, x0, y0, z0, w0) + t40 * gx0;
+    //   dnoise_dy = -8.0 * t20 * t0 * y0 * dot(gx0, gy0, gz0, gw0, x0, y0, z0, w0) + t40 * gy0;
+    //   dnoise_dz = -8.0 * t20 * t0 * z0 * dot(gx0, gy0, gz0, gw0, x0, y0, z0, w0) + t40 * gz0;
+    //   dnoise_dw = -8.0 * t20 * t0 * w0 * dot(gx0, gy0, gz0, gw0, x0, y0, z0, w0) + t40 * gw0;
+    //   dnoise_dx += -8.0 * t21 * t1 * x1 * dot(gx1, gy1, gz1, gw1, x1, y1, z1, w1) + t41 * gx1;
+    //   dnoise_dy += -8.0 * t21 * t1 * y1 * dot(gx1, gy1, gz1, gw1, x1, y1, z1, w1) + t41 * gy1;
+    //   dnoise_dz += -8.0 * t21 * t1 * z1 * dot(gx1, gy1, gz1, gw1, x1, y1, z1, w1) + t41 * gz1;
+    //   dnoise_dw += -8.0 * t21 * t1 * w1 * dot(gx1, gy1, gz1, gw1, x1, y1, z1, w1) + t41 * gw1;
+    //   dnoise_dx += -8.0 * t22 * t2 * x2 * dot(gx2, gy2, gz2, gw2, x2, y2, z2, w2) + t42 * gx2;
+    //   dnoise_dy += -8.0 * t22 * t2 * y2 * dot(gx2, gy2, gz2, gw2, x2, y2, z2, w2) + t42 * gy2;
+    //   dnoise_dz += -8.0 * t22 * t2 * z2 * dot(gx2, gy2, gz2, gw2, x2, y2, z2, w2) + t42 * gz2;
+    //   dnoise_dw += -8.0 * t22 * t2 * w2 * dot(gx2, gy2, gz2, gw2, x2, y2, z2, w2) + t42 * gw2;
+    //   dnoise_dx += -8.0 * t23 * t3 * x3 * dot(gx3, gy3, gz3, gw3, x3, y3, z3, w3) + t43 * gx3;
+    //   dnoise_dy += -8.0 * t23 * t3 * y3 * dot(gx3, gy3, gz3, gw3, x3, y3, z3, w3) + t43 * gy3;
+    //   dnoise_dz += -8.0 * t23 * t3 * z3 * dot(gx3, gy3, gz3, gw3, x3, y3, z3, w3) + t43 * gz3;
+    //   dnoise_dw += -8.0 * t23 * t3 * w3 * dot(gx3, gy3, gz3, gw3, x3, y3, z3, w3) + t43 * gw3;
+    //   dnoise_dx += -8.0 * t24 * t4 * x4 * dot(gx4, gy4, gz4, gw4, x4, y4, z4, w4) + t44 * gx4;
+    //   dnoise_dy += -8.0 * t24 * t4 * y4 * dot(gx4, gy4, gz4, gw4, x4, y4, z4, w4) + t44 * gy4;
+    //   dnoise_dz += -8.0 * t24 * t4 * z4 * dot(gx4, gy4, gz4, gw4, x4, y4, z4, w4) + t44 * gz4;
+    //   dnoise_dw += -8.0 * t24 * t4 * w4 * dot(gx4, gy4, gz4, gw4, x4, y4, z4, w4) + t44 * gw4;
+    let dnoise = (
+        corner_offset1 * corner1.t2 * corner1.t * corner1.grad.dot(corner_offset1) +
+        corner_offset2 * corner2.t2 * corner2.t * corner2.grad.dot(corner_offset2) +
+        corner_offset3 * corner3.t2 * corner3.t * corner3.grad.dot(corner_offset3) +
+        corner_offset4 * corner4.t2 * corner4.t * corner4.grad.dot(corner_offset4) +
+        corner_offset5 * corner5.t2 * corner5.t * corner5.grad.dot(corner_offset5)
+    ) * -8.0 + corner1.grad * corner1.t4 + corner2.grad * corner2.t4 + corner3.grad * corner3.t4 + corner4.grad * corner4.t4 + corner5.grad * corner5.t4;
 
-    let temp1 = corner2.t2 * corner2.t *
-        (corner2.gradx*distance1x + corner2.grady*distance1y + corner2.gradz*distance1z + corner2.gradw*distance1w);
-    dnoisex += distance2x * temp1;
-    dnoisey += distance2y * temp1;
-    dnoisez += distance2z * temp1;
-    dnoisew += distance2w * temp1;
-
-    let temp2 = corner3.t2 * corner3.t *
-        (corner3.gradx*distance1x + corner3.grady*distance1y + corner3.gradz*distance1z + corner3.gradw*distance1w);
-    dnoisex += distance3x * temp2;
-    dnoisey += distance3y * temp2;
-    dnoisez += distance3z * temp2;
-    dnoisew += distance3w * temp2;
-
-    let temp3 = corner4.t2 * corner4.t *
-        (corner4.gradx*distance1x + corner4.grady*distance1y + corner4.gradz*distance1z + corner4.gradw*distance1w);
-    dnoisex += distance4x * temp3;
-    dnoisey += distance4y * temp3;
-    dnoisez += distance4z * temp3;
-    dnoisew += distance4w * temp3;
-
-    let temp4 = corner5.t2 * corner5.t *
-        (corner5.gradx*distance1x + corner5.grady*distance1y + corner5.gradz*distance1z + corner5.gradw*distance1w);
-    dnoisex += distance5x * temp4;
-    dnoisey += distance5y * temp4;
-    dnoisez += distance5z * temp4;
-    dnoisew += distance5w * temp4;
-
-    dnoisex *= -8.0;
-    dnoisey *= -8.0;
-    dnoisez *= -8.0;
-    dnoisew *= -8.0;
-
-    dnoisex +=
-        corner1.gradx * corner1.t4 +
-        corner2.gradx * corner2.t4 +
-        corner3.gradx * corner3.t4 +
-        corner4.gradx * corner4.t4 +
-        corner5.gradx * corner5.t4;
-    dnoisey +=
-        corner1.grady * corner1.t4 +
-        corner2.grady * corner2.t4 +
-        corner3.grady * corner3.t4 +
-        corner4.grady * corner4.t4 +
-        corner5.grady * corner5.t4;
-    dnoisez +=
-        corner1.gradz * corner1.t4 +
-        corner2.gradz * corner2.t4 +
-        corner3.gradz * corner3.t4 +
-        corner4.gradz * corner4.t4 +
-        corner5.gradz * corner5.t4;
-    dnoisew +=
-        corner1.gradw * corner1.t4 +
-        corner2.gradw * corner2.t4 +
-        corner3.gradw * corner3.t4 +
-        corner4.gradw * corner4.t4 +
-        corner5.gradw * corner5.t4;
-
-    // Scale derivative to match the noise scaling
-    dnoisex *= 28.0;
-    dnoisey *= 28.0;
-    dnoisez *= 28.0;
-    dnoisew *= 28.0;
-
-    (noise, Vector4::new(dnoisex, dnoisey, dnoisez, dnoisew))
+    (noise, dnoise)
 }
 
 // A lookup table to traverse the simplex around a given point in 4D.
