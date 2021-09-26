@@ -35,7 +35,7 @@ where
     const SKEW_FACTOR_2D: f64 = 0.366025403;
     const UNSKEW_FACTOR_2D: f64 = 0.211324865;
 
-    /* Skew the input space to determine which simplex cell we're in */
+    // Skew the input space to determine which simplex cell we're in
     let skew = point.sum() * SKEW_FACTOR_2D;
     let skewed = point + skew;
     let cell = skewed.floor_to_isize();
@@ -45,11 +45,11 @@ where
     // Unskew the cell origin back to (x,y) space
     let unskewed = floor - unskew;
     // The x,y distances from the cell origin
-    let distance1 = point - unskewed;
+    let corner_offset1 = point - unskewed;
 
     // For the 2D case, the simplex shape is an equilateral triangle.
     // Determine which simplex we are in.
-    let offset = if distance1.x > distance1.y {
+    let offset = if corner_offset1.x > corner_offset1.y {
         /* Offsets for second (middle) corner of simplex in (i,j) coords */
         // lower triangle, XY order: (0,0)->(1,0)->(1,1)
         Vector2::new(1.0, 0.0)
@@ -58,13 +58,13 @@ where
         Vector2::new(0.0, 1.0)
     };
 
-    /* A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
-     * a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
-     * c = (3-sqrt(3))/6   */
-    // Offsets for middle corner in (x,y) unskewed coords */
-    let distance2 = distance1 - offset + UNSKEW_FACTOR_2D;
-    /* Offsets for last corner in (x,y) unskewed coords */
-    let distance3 = distance1 - 1.0 + 2.0 * UNSKEW_FACTOR_2D;
+    // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
+    // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
+    // c = (3-sqrt(3))/6   */
+    // Offsets for middle corner in (x,y) unskewed coords
+    let corner_offset2 = corner_offset1 - offset + UNSKEW_FACTOR_2D;
+    // Offsets for last corner in (x,y) unskewed coords
+    let corner_offset3 = corner_offset1 - 1.0 + 2.0 * UNSKEW_FACTOR_2D;
 
     struct SurfletComponents {
         value: f64,
@@ -76,7 +76,7 @@ where
 
     #[inline(always)]
     fn surflet(grad_index: usize, point: Vector2<f64>) -> SurfletComponents {
-        let t = 0.5 - point.magnitude_squared();
+        let t = 1.0 - point.magnitude_squared() * 2.0;
 
         if t > 0.0 {
             let grad = gradient::grad2(grad_index).into();
@@ -84,7 +84,7 @@ where
             let t4 = t2 * t2;
 
             SurfletComponents {
-                value: t4 * point.dot(grad),
+                value: (2.0 * t2 + t4) * point.dot(grad),
                 t, t2, t4,
                 grad,
             }
@@ -103,40 +103,28 @@ where
     let grad_index2 = hasher((cell + offset.numcast().unwrap()).into());
     let grad_index3 = hasher((cell + 1).into());
     // Calculate the contribution from the three corners
-    let corner1 = surflet(grad_index1, distance1);
-    let corner2 = surflet(grad_index2, distance2);
-    let corner3 = surflet(grad_index3, distance3);
+    let corner1 = surflet(grad_index1, corner_offset1);
+    let corner2 = surflet(grad_index2, corner_offset2);
+    let corner3 = surflet(grad_index3, corner_offset3);
 
-    /* Add contributions from each corner to get the final noise value.
-     * The result is scaled to return values in the interval [-1, 1]. */
-    let noise = 40.0 * (corner1.value + corner2.value + corner3.value);
+    // Add contributions from each corner to get the final noise value.
+    // The result is scaled to return values in the interval [-1, 1].
+    let noise = corner1.value + corner2.value + corner3.value;
 
-    /*  A straight, unoptimised calculation would be like:
-     *    dnoise_dx = -8.0 * t20 * t0 * x0 * ( gx0 * x0 + gy0 * y0 ) + t40 * gx0;
-     *    dnoise_dy = -8.0 * t20 * t0 * y0 * ( gx0 * x0 + gy0 * y0 ) + t40 * gy0;
-     *    dnoise_dx += -8.0 * t21 * t1 * x1 * ( gx1 * x1 + gy1 * y1 ) + t41 * gx1;
-     *    dnoise_dy += -8.0 * t21 * t1 * y1 * ( gx1 * x1 + gy1 * y1 ) + t41 * gy1;
-     *    dnoise_dx += -8.0 * t22 * t2 * x2 * ( gx2 * x2 + gy2 * y2 ) + t42 * gx2;
-     *    dnoise_dy += -8.0 * t22 * t2 * y2 * ( gx2 * x2 + gy2 * y2 ) + t42 * gy2;
-     */
-    let temp1 = corner1.t2 * corner1.t * corner1.grad.dot(distance1);
-    let mut dnoise = distance1 + temp1;
+    //  A straight, unoptimised calculation would be like:
+    //    dnoise_dx = -8.0 * t20 * t0 * x0 * ( gx0 * x0 + gy0 * y0 ) + t40 * gx0;
+    //    dnoise_dy = -8.0 * t20 * t0 * y0 * ( gx0 * x0 + gy0 * y0 ) + t40 * gy0;
+    //    dnoise_dx += -8.0 * t21 * t1 * x1 * ( gx1 * x1 + gy1 * y1 ) + t41 * gx1;
+    //    dnoise_dy += -8.0 * t21 * t1 * y1 * ( gx1 * x1 + gy1 * y1 ) + t41 * gy1;
+    //    dnoise_dx += -8.0 * t22 * t2 * x2 * ( gx2 * x2 + gy2 * y2 ) + t42 * gx2;
+    //    dnoise_dy += -8.0 * t22 * t2 * y2 * ( gx2 * x2 + gy2 * y2 ) + t42 * gy2;
+    let dnoise = (
+        corner_offset1 + corner1.t2 * corner1.t * corner1.grad.dot(corner_offset1) +
+        corner_offset2 + corner2.t2 * corner2.t * corner2.grad.dot(corner_offset2) +
+        corner_offset2 + corner3.t2 * corner3.t * corner3.grad.dot(corner_offset3)
+    ) * 8.0 + corner1.grad * corner1.t4 + corner2.grad * corner2.t4 + corner3.grad * corner3.t4;
 
-    let temp2 = corner2.t2 * corner2.t * corner2.grad.dot(distance2);
-    dnoise += distance2 * temp2;
-
-    let temp3 = corner3.t2 * corner3.t * corner3.grad.dot(distance3);
-    dnoise += distance2 * temp3;
-
-    dnoise *= -8.0;
-
-    dnoise += corner1.grad * corner1.t4;
-    dnoise += corner2.grad * corner2.t4;
-    dnoise += corner3.grad * corner3.t4;
-
-    dnoise *= 40.0; /* Scale derivative to match the noise scaling */
-
-    (noise, dnoise.into())
+    (noise, dnoise)
 }
 
 #[inline(always)]
