@@ -3,10 +3,10 @@
 //! # Example
 //!
 //! ```rust
-//! use noise::{NoiseFn, Perlin, Seedable};
+//! use noise::{perlin_3d, PermutationTable};
 //!
-//! let perlin = Perlin::new(1);
-//! let val = perlin.get([42.4, 37.7, 2.8]);
+//! let permutation_table = PermutationTable::new(1);
+//! let val = perlin_3d([42.4, 37.7, 2.8].into(), &permutation_table);
 //! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
