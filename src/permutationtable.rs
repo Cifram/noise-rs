@@ -9,7 +9,7 @@ const TABLE_SIZE: usize = 256;
 /// create one of these per generator.
 #[derive(Copy, Clone)]
 pub struct PermutationTable {
-    values: [usize; TABLE_SIZE],
+    pub values: [usize; TABLE_SIZE],
 }
 
 impl PermutationTable {
